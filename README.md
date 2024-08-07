@@ -120,28 +120,28 @@ For Mandarin speech editing test, please run:
 
 ```bash
 export CUDA_VISIBLE_DEVICES=0
-python inferencese_zh.py
+python inference_se_zh.py
 ```
 
 For English speech editing test, please run:
 
 ```bash
 export CUDA_VISIBLE_DEVICES=0
-python inferencese_en.py
+python inference_se_en.py
 ```
 
 For Mandarin zero-shot tts test, please run:
 
 ```bash
 export CUDA_VISIBLE_DEVICES=0
-python inferencetts_zh.py
+python inference_tts_zh.py
 ```
 
 For English zero-shot tt test, please run:
 
 ```bash
 export CUDA_VISIBLE_DEVICES=0
-python inferencetts_en.py
+python inference_tts_en.py
 ```
 
 
