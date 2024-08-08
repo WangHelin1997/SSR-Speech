@@ -146,6 +146,29 @@ export CUDA_VISIBLE_DEVICES=0
 python inference_tts_en.py
 ```
 
+## Training WaterMarking Encodec
+
+To train the Watermarking Encodec, you need to:
+
+1. install our audiocraft package,
+
+```bash
+cd ./audiocraft
+pip install -e .
+```
+
+2. prepare data (for training, validataion and test), e.g.
+
+```bash
+python makefile.py
+```
+
+3. start training,
+
+```bash
+dora run -d solver='compression/encodec_audiogen_16khz' dset='internal/sounds_16khz'
+```
+
 
 ## Acknowledgement
 We thank Puyuan for his [VoiceCraft](https://github.com/jasonppy/VoiceCraft).
