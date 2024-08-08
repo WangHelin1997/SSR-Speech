@@ -1,13 +1,15 @@
 # SSR-Speech
 
-Official Pytorch implementation of paper: SSR-Speech: Towards Stable, Safe and Robust Zero-shot Speech Editing and Synthesis.
+Official Pytorch implementation of the paper: SSR-Speech: Towards Stable, Safe and Robust Zero-shot Speech Editing and Synthesis.
 
 ## Environment setup
 ```bash
 conda create -n ssr python=3.9.16
 conda activate ssr
 
-pip install -e git+https://github.com/facebookresearch/audiocraft.git@c5157b5bf14bf83449c17ea1eeb66c19fb4bc7f0#egg=audiocraft
+cd ./audiocraft
+pip install .
+
 pip install xformers==0.0.22
 pip install torchaudio torch
 apt-get install ffmpeg
