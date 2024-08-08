@@ -1,0 +1,11 @@
+# @package __global__
+
+defaults:
+  - compression/default
+  - /model: encodec/encodec_large_nq4_s320
+  - override /dset: audio/default
+  - _self_
+
+channels: 1
+sample_rate: 16000
+checkpoint_path: "/apdcephfs_cq10/share_1603164/user/helinhwang/VoiceCraft/pretrained_models/VoiceCraft/encodec_4cb2048_giga.th"

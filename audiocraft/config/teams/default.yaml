@@ -1,0 +1,12 @@
+default:
+  dora_dir: /apdcephfs_cq10/share_1603164/user/helinhwang/audiocraft/tmp/audiocraft_${oc.env:USER}
+  partitions:
+    global: debug
+    team: debug
+  reference_dir: /apdcephfs_cq10/share_1603164/user/helinhwang/audiocraft/tmp
+darwin:  # if we detect we are on a Mac, then most likely we are doing unit testing etc.
+  dora_dir: /apdcephfs_cq10/share_1603164/user/helinhwang/audiocraft/tmp/audiocraft_${oc.env:USER}
+  partitions:
+    global: debug
+    team: debug
+  reference_dir: /apdcephfs_cq10/share_1603164/user/helinhwang/audiocraft/tmp

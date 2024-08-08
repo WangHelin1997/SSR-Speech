@@ -1,0 +1,28 @@
+aws:
+  dora_dir: /apdcephfs_cq10/share_1603164/user/helinhwang/audiocraft/fsx-audio-craft-llm/${oc.env:USER}/experiments/audiocraft/outputs
+  partitions:
+    global: learnlab
+    team: learnlab
+  reference_dir: /apdcephfs_cq10/share_1603164/user/helinhwang/audiocraft/fsx-audio-craft-llm/shared/audiocraft/reference
+  dataset_mappers:
+    "^/checkpoint/[a-z]+": "/fsx-audio-craft-llm"
+fair:
+  dora_dir: /apdcephfs_cq10/share_1603164/user/helinhwang/audiocraft/checkpoint/${oc.env:USER}/experiments/audiocraft/outputs
+  partitions:
+    global: learnlab
+    team: learnlab
+  reference_dir: /apdcephfs_cq10/share_1603164/user/helinhwang/audiocraft/large_experiments/audiocraft/reference
+  dataset_mappers:
+    "^/datasets01/datasets01": "/datasets01"
+darwin:
+  dora_dir: /apdcephfs_cq10/share_1603164/user/helinhwang/audiocraft/tmp/audiocraft_${oc.env:USER}
+  partitions:
+    global: debug
+    team: debug
+  reference_dir: /apdcephfs_cq10/share_1603164/user/helinhwang/audiocraft/tmp
+rsc:
+  dora_dir: /apdcephfs_cq10/share_1603164/user/helinhwang/audiocraft/checkpoint/audiocraft/${oc.env:USER}/experiments/audiocraft/outputs
+  partitions:
+    global: learn
+    team: learn
+  reference_dir: /apdcephfs_cq10/share_1603164/user/helinhwang/audiocraft/checkpoint/audiocraft/shared/reference
