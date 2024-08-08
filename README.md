@@ -1,5 +1,7 @@
 # SSR-Speech
 
+Official Pytorch implementation of paper: SSR-Speech: Towards Stable, Safe and Robust Zero-shot Speech Editing and Synthesis.
+
 ## Environment setup
 ```bash
 conda create -n ssr python=3.9.16
