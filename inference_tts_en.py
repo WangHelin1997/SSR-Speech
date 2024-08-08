@@ -145,7 +145,7 @@ if __name__ == "__main__":
     orig_transcript =    "Gwynplaine had, besides, for his work and for his feats of strength, round his neck and over his shoulders, an esclavine of leather."
     target_transcript =  "Gwynplaine had, besides, for his work and for his feats of strength, I cannot believe that the same model can also do text to speech synthesis too!"
     temp_folder = "./demo/temp_test2"
-    output_dir = "./demo/generated_tts"
+    output_dir = f"./demo/generated_tts_top_p{str(top_p)}_cfg_coef{str(cfg_coef)}_aug_text{str(aug_text)}_aug_context{aug_context}_cfg_pretrained{str(cfg_pretrained)}"
     savename = '5895_34622_000026_000002'
     savetag = 1
     mfa=False

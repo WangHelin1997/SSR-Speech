@@ -19,7 +19,7 @@ from .modules.transformer import (
     TransformerEncoder,
     TransformerEncoderLayer,
 )
-
+from huggingface_hub import PyTorchModelHubMixin
 from argparse import Namespace
 import typing as tp
 
@@ -85,12 +85,16 @@ def topk_sampling(logits, top_k=10, top_p=1.0, temperature=1.0):
     token = torch.multinomial(F.softmax(logits, dim=-1), num_samples=1)
     return token
 
-
-
 class SSR_Speech(
         nn.Module,
+        PyTorchModelHubMixin,
+        library_name="ssr_speech",
+        repo_url=None,
+        tags=None,
     ):
     def __new__(cls, args: Optional[Namespace] = None, config: Optional[Dict] = None, **kwargs) -> "SSR_Speech":
+        # If initialized from Namespace args => convert to dict config for 'PyTorchModelHubMixin' to serialize it as config.json
+        # Won't affect instance initialization
         if args is not None:
             if config is not None:
                 raise ValueError("Cannot provide both `args` and `config`.")
@@ -568,12 +572,11 @@ class SSR_Speech(
             out_len = prompt.shape[2]
             gt_y = torch.cat([prompt, y], dim=-1)
             y = gt_y.repeat(2, 1, 1)
-            if not cfg_pretrained:
-                uncond_x = torch.randint(0, self.n_text_tokens, (1, x.shape[1])).to(x.device)
-            else:
-                uncond_x = torch.tensor([self.args.text_vocab_size-1], dtype=torch.long).unsqueeze(0).repeat(1, x.shape[1]).to(x.device)
             gt_x = torch.cat([prompt_x, x], dim=1)
-            uncond_x = torch.cat([prompt_x, uncond_x], dim=1)
+            if not cfg_pretrained:
+                uncond_x = torch.randint(0, self.n_text_tokens, (1, gt_x.shape[1])).to(gt_x.device)
+            else:
+                uncond_x = torch.tensor([self.args.text_vocab_size-1], dtype=torch.long).unsqueeze(0).repeat(1, gt_x.shape[1]).to(gt_x.device)
             x = torch.cat([gt_x, uncond_x], dim=0)
             
         if not aug_text and aug_context: # [tc, t, c, ab, m]
@@ -738,7 +741,8 @@ class SSR_Speech(
                 # prepare input for next token prediction
                 samples_emb = torch.stack([self.audio_embedding[k](samples[k]) for k in range(self.args.n_codebooks)], dim=0) # [K,1,D]
                 samples_emb = samples_emb.sum(dim=0,keepdim=True) # [1,1,D]
-                samples_emb = samples_emb.repeat(2, 1, 1)
+                if aug_text:
+                    samples_emb = samples_emb.repeat(2, 1, 1)
                 embedded_y = torch.cat([embedded_y, samples_emb], dim=1)
                 # positional embedding
                 y_input = self.audio_positional_embedding(embedded_y) # [B T D]

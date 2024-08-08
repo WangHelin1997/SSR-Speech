@@ -137,6 +137,7 @@ def main(orig_audio, orig_transcript, target_transcript, temp_folder, output_dir
                     for start, end in zip(starting_intervals, ending_intervals)] # in seconds
     morphed_span = combine_spans(morphed_span, threshold=0.2)
     print("morphed_spans: ", morphed_span)
+    os.makedirs(output_dir, exist_ok=True)
     save_morphed_span = f"{output_dir}/{savename}_mask.pt"
     torch.save(morphed_span, save_morphed_span)
     mask_interval = [[round(span[0]*codec_sr), round(span[1]*codec_sr)] for span in morphed_span]
@@ -144,7 +145,6 @@ def main(orig_audio, orig_transcript, target_transcript, temp_folder, output_dir
 
     decode_config = {'top_k': top_k, 'top_p': top_p, 'temperature': temperature, 'stop_repetition': stop_repetition, 'kvcache': kvcache, "codec_audio_sr": codec_audio_sr, "codec_sr": codec_sr, "silence_tokens": silence_tokens}
     
-    os.makedirs(output_dir, exist_ok=True)
     for num in tqdm(range(sample_batch_size)):
         seed_everything(seed+num)
         orig_audio, new_audio = inference_one_sample(model, Namespace(**config), phn2num, text_tokenizer, audio_tokenizer, audio_fn, orig_transcript, target_transcript, mask_interval, cfg_coef, aug_text, aug_context, cfg_pretrained, device, decode_config)
@@ -168,7 +168,7 @@ if __name__ == "__main__":
     orig_transcript =    "But when I had approached so near to them The common object, which the sense deceives, Lost not by distance any of its marks,"
     target_transcript =  "But when I saw the mirage of the lake in the distance, which the sense deceives, Lost not by distance any marks,"
     temp_folder = "./demo/temp_test"
-    output_dir = "./demo/generated_se"
+    output_dir = f"./demo/generated_se_top_p{str(top_p)}_cfg_coef{str(cfg_coef)}_aug_text{str(aug_text)}_aug_context{aug_context}_cfg_pretrained{str(cfg_pretrained)}"
     savename = '84_121550_000074_00000'
     savetag = 1
     mfa=False

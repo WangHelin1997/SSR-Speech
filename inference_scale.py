@@ -58,7 +58,6 @@ def inference_one_sample(model, model_args, phn2num, text_tokenizer, audio_token
         cfg_coef=cfg_coef,
         aug_text=aug_text,
         aug_context=aug_context,
-        aug_prosody=aug_prosody,
         cfg_pretrained=cfg_pretrained,
     ) # output is [1,K,T]
     logging.info(f"inference on one sample take: {time.time() - stime:.4f} sec.")

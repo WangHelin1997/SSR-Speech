@@ -146,7 +146,7 @@ if __name__ == "__main__":
     orig_transcript =    "能够更有效率地结合给用户提升更多的这种体验也包括他的这个他的后台的效率提升等等我相信这些额额业界的解决方案应该说是"
     target_transcript =  "能够更有效率地结合给用户提升更多的这种体验但是一个最大的缺点也是所有的零售商比较担忧的问题还没有被解决"
     temp_folder = "./demo/temp_test3"
-    output_dir = "./demo/generated_tts"
+    output_dir = f"./demo/generated_tts_top_p{str(top_p)}_cfg_coef{str(cfg_coef)}_aug_text{str(aug_text)}_aug_context{aug_context}_cfg_pretrained{str(cfg_pretrained)}"
     savename = 'pony'
     savetag = 1
     mfa=False
