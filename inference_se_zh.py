@@ -38,7 +38,7 @@ cfg_coef = 1.25
 aug_text = False
 aug_context = False
 cfg_pretrained = False
-
+use_watermark = False
 
 def seed_everything(seed):
     os.environ['PYTHONHASHSEED'] = str(seed)
@@ -53,7 +53,6 @@ seed_everything(seed)
 device = "cuda" if torch.cuda.is_available() else "cpu"
 print(f"using {device}")
 
-# # the old way of loading the model
 from models import ssr
 filepath = os.path.join('./pretrained_models/Chinese_25k/e830M/', "best_bundle.pth")
 ckpt = torch.load(filepath, map_location="cpu")
@@ -147,7 +146,7 @@ def main(orig_audio, orig_transcript, target_transcript, temp_folder, output_dir
     
     for num in tqdm(range(sample_batch_size)):
         seed_everything(seed+num)
-        orig_audio, new_audio = inference_one_sample(model, Namespace(**config), phn2num, text_tokenizer, audio_tokenizer, audio_fn, orig_transcript, target_transcript, mask_interval, cfg_coef, aug_text, aug_context, cfg_pretrained, device, decode_config)
+        orig_audio, new_audio = inference_one_sample(model, Namespace(**config), phn2num, text_tokenizer, audio_tokenizer, audio_fn, orig_transcript, target_transcript, mask_interval, cfg_coef, aug_text, aug_context, cfg_pretrained, use_watermark, device, decode_config)
         # save segments for comparison
         orig_audio, new_audio = orig_audio[0].cpu(), new_audio[0].cpu()
         save_fn_new = f"{output_dir}/{savename}_new_seed{seed+num}.wav"
@@ -168,7 +167,7 @@ if __name__ == "__main__":
     orig_transcript =    "能够更有效率地结合给用户提升更多的这种体验也包括他的这个他的后台的效率提升等等我相信这些额额业界的解决方案应该说是"
     target_transcript =  "能够更有效率地结合给用户提升更多的体验也包括他的这个他的后台的效率提升等等在这个基础上我相信这些业界的解决方案应该说是"
     temp_folder = "./demo/temp_test3"
-    output_dir = f"./demo/generated_se_top_p{str(top_p)}_cfg_coef{str(cfg_coef)}_aug_text{str(aug_text)}_aug_context{aug_context}_cfg_pretrained{str(cfg_pretrained)}"
+    output_dir = f"./demo/generated_se"
     savename = 'pony'
     savetag = 1
     mfa=False
