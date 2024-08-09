@@ -606,6 +606,7 @@ class SSR_Speech(
         non_mask_intervals = [
             (ns, ne) for ns, ne in zip(ends, starts)
         ]
+
         # prepare input sequences
         rearranged_y = self.rearrange(y[0], non_mask_intervals, mask_intervals)
         shifted_y = self.shift(rearranged_y) # each element [K S], patterns is not used, as we directly use the original input y
@@ -678,7 +679,7 @@ class SSR_Speech(
                 logits = torch.stack([self.predict_layer[i](y_out) for i in range(self.args.n_codebooks)], dim=1) # [B K S card], B==S==1, so [1 K 1 card]
                 logits = logits.squeeze() # [K card]
                 if aug_text:
-                    logits = cfg_coef * logits[0] + (1 - cfg_coef) * torch.mean(logits[1], 0)
+                    logits = cfg_coef * logits[0] + (1 - cfg_coef) * logits[1]
                 assert logits.shape == torch.Size((self.args.n_codebooks, self.n_audio_tokens[0])), f"{logits.shape}"
                 # filter out mts, sos and eos
                 for jj in range(self.args.n_codebooks):
@@ -769,19 +770,32 @@ class SSR_Speech(
             flatten_gen.append(unshifted_span)
                 
         res = []
+        marks = []
+        masks = []
+        tmp = 0
         for orig_interval, gen in zip(non_mask_intervals, flatten_gen):
             res.append(y[0, :, orig_interval[0]:orig_interval[1]])
+            masks.append((tmp, tmp+orig_interval[1]-orig_interval[0]))
+            tmp_mark = [0] * (orig_interval[1] - orig_interval[0])
+            marks = [*marks, *tmp_mark]
             res.append(gen)
+            tmp += orig_interval[1]-orig_interval[0] + gen.shape[-1]
+            tmp_mark = [1] * gen.shape[-1]
+            marks = [*marks, *tmp_mark]
         if y.shape[-1] != non_mask_intervals[-1][1] + 1: # edit last tokens or tts
             res.append(y[0, :, non_mask_intervals[-1][0]:non_mask_intervals[-1][1]])
+            masks.append((tmp, tmp+non_mask_intervals[-1][1]-non_mask_intervals[-1][0]))
+            tmp_mark = [0] * (non_mask_intervals[-1][1] - non_mask_intervals[-1][0])
+            marks = [*marks, *tmp_mark]
         res = torch.cat(res, dim=1).unsqueeze(0) # [K,new_T] -> [1, K, new_T]
-        if self.args.special_first:
-            res = res - int(self.args.n_special)
-
+        marks = torch.LongTensor(marks).unsqueeze(0)
         if aug_context:
             res = res[:, :, out_len:]
+            marks = marks[:, out_len:]
+            masks = [(item[0]-out_len, item[1]-out_len) for item in masks]
+            non_mask_intervals = [(item[0]-out_len, item[1]-out_len) for item in non_mask_intervals]
 
-        return res
+        return res, marks, masks, non_mask_intervals
 
 
 if __name__ == "__main__":

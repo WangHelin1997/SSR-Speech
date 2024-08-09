@@ -16,7 +16,7 @@ from data.tokenizer import (
 import time
 
 @torch.no_grad()
-def inference_one_sample(model, model_args, phn2num, text_tokenizer, audio_tokenizer, audio_fn, prompt_text, target_text, mask_interval, cfg_coef, aug_text, aug_context, cfg_pretrained, device, decode_config):
+def inference_one_sample(model, model_args, phn2num, text_tokenizer, audio_tokenizer, audio_fn, prompt_text, target_text, mask_interval, cfg_coef, aug_text, aug_context, cfg_pretrained, use_watermark, device, decode_config):
     # phonemize
     text_tokens = [phn2num[phn] for phn in
             tokenize_text(
@@ -41,7 +41,7 @@ def inference_one_sample(model, model_args, phn2num, text_tokenizer, audio_token
 
     # forward
     stime = time.time()
-    encoded_frames = model.inference(
+    encoded_frames, marks, masks, ori_masks = model.inference(
         text_tokens.to(device),
         text_tokens_lens.to(device),
         prompt_text_tokens.to(device),
@@ -65,15 +65,24 @@ def inference_one_sample(model, model_args, phn2num, text_tokenizer, audio_token
         encoded_frames = encoded_frames[0]
     logging.info(f"generated encoded_frames.shape: {encoded_frames.shape}, which is {encoded_frames.shape[-1]/decode_config['codec_sr']} sec.")
 
-    # decode (both original and generated)
-    original_sample = audio_tokenizer.decode(
-        [(original_audio.transpose(2,1), None)] # [1,T,8] -> [1,8,T]
-    )
-    generated_sample = audio_tokenizer.decode(
-        [(encoded_frames, None)]
-    )
+    # decode 
+    if use_watermark:
+        wav, sr = torchaudio.load(audio_fn)
+        new_wav = torch.zeros(1, encoded_frames.shape[-1]*320) # codec hz
+        
+        ori_non_mask_intervals = [(max(item[0],0), item[1]) for item in ori_masks]
+        non_mask_intervals = [(max(item[0],0), item[1]) for item in masks]
 
-    return original_sample, generated_sample
+        for i in range(len(ori_non_mask_intervals)):
+            
+            tmp_wav = wav[:, ori_non_mask_intervals[i][0]*320:ori_non_mask_intervals[i][1]*320]
+            leng = min(non_mask_intervals[i][1]*320-non_mask_intervals[i][0]*320, tmp_wav.shape[-1])
+            new_wav[:, non_mask_intervals[i][0]*320:non_mask_intervals[i][0]*320+leng] = tmp_wav
+        print(marks)
+        generated_sample = audio_tokenizer.wmdecode(encoded_frames, marks.to(encoded_frames.device), new_wav.unsqueeze(0).to(encoded_frames.device))
+    else:
+        generated_sample = audio_tokenizer.decode(encoded_frames)
+    return generated_sample
 
 
 def get_mask_interval(ali_fn, word_span):
