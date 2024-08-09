@@ -102,7 +102,7 @@ class WMCompressionSolver(base.StandardSolver):
         y_pred = qres.x
         
         cls_losses: dict = {}
-        cls_losses['cls_loss'] = self.cls_losses(mark.reshape(mark.shape[0]*mark.shape[1], 2), mark_label.reshape(mark.shape[0]*mark.shape[1])) + self.cls_losses(clean_mark.reshape(clean_mark.shape[0]*clean_mark.shape[1], 2), clean_mark_label.reshape(clean_mark.shape[0]*clean_mark.shape[1]))
+        cls_losses['cls_loss'] = self.cls_losses(mark.reshape(mark.shape[0]*mark.shape[1], 2), mark_label.reshape(mark.shape[0]*mark.shape[1])) + 0.25*self.cls_losses(clean_mark.reshape(clean_mark.shape[0]*clean_mark.shape[1], 2), clean_mark_label.reshape(clean_mark.shape[0]*clean_mark.shape[1]))
         if self.is_training:
             cls_losses['cls_loss'].backward(retain_graph=True)
         metrics.update(cls_losses)
