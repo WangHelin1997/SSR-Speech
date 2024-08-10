@@ -453,11 +453,11 @@ class WMSEANetDecoder(nn.Module):
         x = self.model[7:10](out)
 
         out = torch.cat([skips.pop(), self.wm_embed(labels.pop()).transpose(2, 1)], dim=1)
-        out = self.wm_proj3(out)
+        out = self.wm_proj3(out) + x
         x = self.model[10:13](out)
 
         out = torch.cat([skips.pop(), self.wm_embed(labels.pop()).transpose(2, 1)], dim=1)
-        out = self.wm_proj4(out)
+        out = self.wm_proj4(out) + x
         x = self.model[13:](out)
 
         m = self.wm_encoder(x)
