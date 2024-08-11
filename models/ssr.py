@@ -559,6 +559,13 @@ class SSR_Speech(
         assert prompt.shape[0] == 1 and prompt.shape[1] == self.args.n_codebooks, prompt.shape # there is no padding
         assert mask_interval.shape == torch.Size((1, mask_interval.shape[1], 2)), mask_interval
 
+        # whether to use context
+        context_len = sum([item[1] - item[0] for item in mask_interval[0]])
+        if aug_context and context_len < 3 * 50:
+            aug_context = True
+        else:
+            aug_context = False
+
         # augment
         if aug_text and not aug_context: # [t, ab, m] [t', ab, m]
             y = y.repeat(2, 1, 1)
