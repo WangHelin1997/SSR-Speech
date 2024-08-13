@@ -206,12 +206,12 @@ class WMEncodecModel(WMCompressionModel):
     def apply_random_masking(self, 
                              batch_size, 
                              N, 
-                             min_mask_regions=0, 
-                             max_mask_regions=2, 
+                             min_mask_regions=1, 
+                             max_mask_regions=4, 
                              max_mask_fraction=0.8,
                             ):
         mask_tensor = torch.zeros(batch_size, N, dtype=torch.long)
-        audio_mask_tensor = torch.ones((batch_size, 1, N * 320), dtype=torch.long)
+        # audio_mask_tensor = torch.ones((batch_size, 1, N * 320), dtype=torch.long)
         for i in range(batch_size):
             num_regions = random.randint(min_mask_regions, max_mask_regions)
             total_masked = 0
@@ -229,10 +229,10 @@ class WMEncodecModel(WMCompressionModel):
 
                 start_idx = random.randint(0, N - mask_len)
                 mask_tensor[i, start_idx:start_idx + mask_len] = 1
-                audio_mask_tensor[i, :, start_idx*320:(start_idx + mask_len)*320] = 0
+                # audio_mask_tensor[i, :, start_idx*320:(start_idx + mask_len)*320] = 0
                 total_masked += mask_len
                 
-        return mask_tensor, audio_mask_tensor
+        return mask_tensor
 
     def forward(self, x: torch.Tensor) -> qt.QuantizedResult:
         assert x.dim() == 3
@@ -241,11 +241,14 @@ class WMEncodecModel(WMCompressionModel):
         y = x.clone()
         z = x.clone()
         emb = self.encoder(x)
-        mark_label, audio_mask_tensor = self.apply_random_masking(emb.shape[0], emb.shape[-1])
+        mark_label = self.apply_random_masking(emb.shape[0], emb.shape[-1])
+        audio_mask_tensor = (1.-mark_label.unsqueeze(1).to(emb.device)) * emb
         clean_mark_label = torch.zeros(emb.shape[0], emb.shape[-1], dtype=torch.long).to(emb.device)
         q_res = self.quantizer(emb, self.frame_rate)
         
-        out, mark = self.wmdecoder(q_res.x, mark_label.clone().to(emb.device), audio_mask_tensor.to(emb.device) * y)
+        # out, mark = self.wmdecoder(q_res.x, mark_label.clone().to(emb.device), audio_mask_tensor.to(emb.device) * y)
+        out, mark = self.wmdecoder(q_res.x, mark_label.clone().to(emb.device), audio_mask_tensor)
+
         
         m = self.wmdecoder.wm_encoder(z)
         m = self.wmdecoder.wm_predictor(m)
@@ -275,7 +278,7 @@ class WMEncodecModel(WMCompressionModel):
         x, scale = self.preprocess(x)
         emb = self.encoder(x)
         codes = self.quantizer.encode(emb)
-        return codes, scale
+        return codes, scale, emb
 
     def decode(self, codes: torch.Tensor, scale: tp.Optional[torch.Tensor] = None):
         """Decode the given codes to a reconstructed representation, using the scale to perform
