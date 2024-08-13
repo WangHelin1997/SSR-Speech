@@ -165,7 +165,7 @@ pip install -e .
 python makefile.py
 ```
 
-3. start training,
+3. change the settings in `./audiocraft/config/` to your own and start training,
 
 ```bash
 dora run -d solver='compression/encodec_audiogen_16khz' dset='internal/sounds_16khz'
