@@ -246,7 +246,6 @@ class WMEncodecModel(WMCompressionModel):
         clean_mark_label = torch.zeros(emb.shape[0], emb.shape[-1], dtype=torch.long).to(emb.device)
         q_res = self.quantizer(emb, self.frame_rate)
         
-        # out, mark = self.wmdecoder(q_res.x, mark_label.clone().to(emb.device), audio_mask_tensor.to(emb.device) * y)
         out, mark = self.wmdecoder(q_res.x, mark_label.clone().to(emb.device), audio_mask_tensor)
 
         
