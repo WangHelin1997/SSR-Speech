@@ -341,8 +341,6 @@ class WMCompressionSolver(base.StandardSolver):
         cfg.device = device
 
         d = omegaconf.OmegaConf.to_container(cfg, resolve=True)
-        # if 'encodec' in d:
-        #     d['wmencodec'] = d.pop('encodec')
         d['compression_model'] = 'wmencodec'
         cfg = omegaconf.OmegaConf.create(d)
 
@@ -360,7 +358,6 @@ class WMCompressionSolver(base.StandardSolver):
 
         compression_model.load_state_dict(wmencodec_state_dict)
         compression_model.wmdecoder.model.load_state_dict(compression_model.decoder.model.state_dict())
-        compression_model.wmdecoder.skip_encoder.load_state_dict(compression_model.encoder.state_dict())
         compression_model.wmdecoder.wm_encoder.load_state_dict(compression_model.encoder.state_dict())
         
         compression_model.eval()
