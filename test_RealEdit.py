@@ -35,12 +35,13 @@ kvcache = 1
 seed = 1
 silence_tokens = [1388,1898,131] # if there are long silence in the generated audio, reduce the stop_repetition to 3, 2 or even 1
 stop_repetition = 2 # -1 means do not adjust prob of silence tokens. if there are long silence or unnaturally strecthed words, increase sample_batch_size to 2, 3 or even 4
-sample_batch_size = 5 # what this will do to the model is that the model will run sample_batch_size examples of the same audio, and pick the one that's the shortest
+sample_batch_size = 5 # what this will do to the model is that the model will run sample_batch_size examples of the same audio
 cfg_coef = 1.5
 aug_text = True
-aug_context = True
+aug_context = False
 cfg_pretrained = False
-use_watermark = False
+use_watermark = True
+tts = False
 
 def seed_everything(seed):
     os.environ['PYTHONHASHSEED'] = str(seed)
@@ -130,7 +131,7 @@ def main(filename, orig_transcript, target_transcript, temp_folder, output_dir, 
 
     for num in tqdm(range(sample_batch_size)):
         seed_everything(seed+num)
-        new_audio = inference_one_sample(model, Namespace(**config), phn2num, text_tokenizer, audio_tokenizer, audio_fn, orig_transcript, target_transcript, mask_interval, cfg_coef, aug_text, aug_context, cfg_pretrained, use_watermark, device, decode_config)
+        new_audio = inference_one_sample(model, Namespace(**config), phn2num, text_tokenizer, audio_tokenizer, audio_fn, orig_transcript, target_transcript, mask_interval, cfg_coef, aug_text, aug_context, cfg_pretrained, use_watermark, tts, device, decode_config)
         # save segments for comparison
         new_audio = new_audio[0].cpu()
         save_fn_new = f"{output_dir}/{savename}_new_seed{seed+num}.wav"
