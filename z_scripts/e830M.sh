@@ -64,7 +64,6 @@ torchrun --nnodes=1 --rdzv-backend=c10d --rdzv-endpoint=localhost:41977 --nproc_
 --n_codebooks 4 \
 --max_n_spans 3 \
 --tts_enhanced 1 \
---cfg_enhanced 1 \
 --shuffle_mask_embedding 0 \
 --mask_sample_dist uniform \
 --max_mask_portion 0.9 \
