@@ -561,11 +561,11 @@ class SSR_Speech(
 
         # whether to use context
         context_len = sum([item[1] - item[0] for item in mask_interval[0]])
-        if aug_context and context_len < 3 * 50:
+        if aug_context and context_len < 2 * 50:
             aug_context = True
         else:
             aug_context = False
-
+        
         # augment
         if aug_text and not aug_context: # [t, ab, m] [t', ab, m]
             y = y.repeat(2, 1, 1)
