@@ -27,18 +27,19 @@ sub_amount = 0.01
 codec_audio_sr = 16000
 codec_sr = 50
 top_k = 0
-top_p = 0.9
+top_p = 0.8
 temperature = 1
 kvcache = 1
 seed = 1
 silence_tokens = [1388,1898,131] # if there are long silence in the generated audio, reduce the stop_repetition to 3, 2 or even 1
-stop_repetition = -1 # -1 means do not adjust prob of silence tokens. if there are long silence or unnaturally strecthed words, increase sample_batch_size to 2, 3 or even 4
-sample_batch_size = 5 # what this will do to the model is that the model will run sample_batch_size examples of the same audio, and pick the one that's the shortest
-cfg_coef = 1.25
+stop_repetition = 2 # -1 means do not adjust prob of silence tokens. if there are long silence or unnaturally strecthed words, increase sample_batch_size to 2, 3 or even 4
+sample_batch_size = 1 # what this will do to the model is that the model will run sample_batch_size examples of the same audio
+cfg_coef = 1.5
 aug_text = True
 aug_context = False
 cfg_pretrained = False
-use_watermark = False
+use_watermark = True
+tts = False
 
 # what this will do to the model is that the model will run sample_batch_size examples of the same audio, and pick the one that's the shortest
 def seed_everything(seed):
@@ -62,7 +63,7 @@ config = vars(model.args)
 phn2num = ckpt["phn2num"]
 model.to(device)
 model.eval()
-encodec_fn = "./pretrained_models/VoiceCraft/encodec_4cb2048_giga.th"
+encodec_fn = "./pretrained_models/WMEncodec/checkpoint.th"
 audio_tokenizer = AudioTokenizer(signature=encodec_fn) # will also put the neural codec model on gpu
 text_tokenizer = TextTokenizer(backend="espeak", language='cmn')
 
@@ -126,7 +127,7 @@ def main(orig_audio, orig_transcript, target_transcript, temp_folder, output_dir
     os.makedirs(output_dir, exist_ok=True)
     for num in tqdm(range(sample_batch_size)):
         seed_everything(seed+num)
-        orig_audio, new_audio = inference_one_sample(model, Namespace(**config), phn2num, text_tokenizer, audio_tokenizer, audio_fn, orig_transcript, target_transcript, mask_interval, cfg_coef, aug_text, aug_context, cfg_pretrained, use_watermark, device, decode_config)
+        orig_audio, new_audio = inference_one_sample(model, Namespace(**config), phn2num, text_tokenizer, audio_tokenizer, audio_fn, orig_transcript, target_transcript, mask_interval, cfg_coef, aug_text, aug_context, cfg_pretrained, use_watermark, tts, device, decode_config)
         # save segments for comparison
         orig_audio, new_audio = orig_audio[0].cpu(), new_audio[0].cpu()
         save_fn_new = f"{output_dir}/{savename}_new_seed{seed+num}.wav"
@@ -145,7 +146,7 @@ if __name__ == "__main__":
     orig_audio = "./demo/pony.wav"
     orig_transcript =    "能够更有效率地结合给用户提升更多的这种体验也包括他的这个他的后台的效率提升等等我相信这些额额业界的解决方案应该说是"
     target_transcript =  "能够更有效率地结合给用户提升更多的这种体验但是一个最大的缺点也是所有的零售商比较担忧的问题还没有被解决"
-    temp_folder = "./demo/temp_test3"
+    temp_folder = "./demo/temp_test"
     output_dir = f"./demo/generated_tts"
     savename = 'pony'
     savetag = 1
