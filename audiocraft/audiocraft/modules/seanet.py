@@ -358,14 +358,6 @@ class WMSEANetDecoder(nn.Module):
             ]
         self.model = nn.Sequential(*model)
 
-        self.skip_encoder = SEANetEncoder(channels=channels, dimension=dimension, n_filters=n_filters, n_residual_layers=n_residual_layers,
-                 ratios=self.ratios, activation=activation, activation_params=activation_params,
-                 norm=norm, norm_params=norm_params, kernel_size=kernel_size,
-                 last_kernel_size=last_kernel_size, residual_kernel_size=residual_kernel_size, dilation_base=dilation_base, causal=causal,
-                 pad_mode=pad_mode, true_skip=true_skip, compress=compress, lstm=lstm,
-                 disable_norm_outer_blocks=disable_norm_outer_blocks
-        )
-
         self.wm_embed = nn.Embedding(2, dimension // 16, max_norm=True)
 
         self.wm_encoder = SEANetEncoder(channels=channels, dimension=dimension, n_filters=n_filters, n_residual_layers=n_residual_layers,
@@ -378,40 +370,10 @@ class WMSEANetDecoder(nn.Module):
         
         wm_proj0: tp.List[nn.Module] = [
                 act(**activation_params),
-                StreamableConv1d(dimension + dimension//16, dimension, 1, norm='none', norm_kwargs=norm_params, causal=causal, pad_mode=pad_mode),
+                StreamableConv1d(dimension + dimension + dimension//16, dimension, 1, norm='none', norm_kwargs=norm_params, causal=causal, pad_mode=pad_mode),
             ]
         self.wm_proj0 = nn.Sequential(*wm_proj0)
         
-        mult = int(2 ** len(self.ratios))
-        mult //= 2
-        wm_proj1: tp.List[nn.Module] = [
-                act(**activation_params),
-                StreamableConv1d(mult * n_filters + dimension//16, mult * n_filters, 1, norm='none', norm_kwargs=norm_params, causal=causal, pad_mode=pad_mode),
-            ]
-        self.wm_proj1 = nn.Sequential(*wm_proj1)
-        mult //= 2
-
-        wm_proj2: tp.List[nn.Module] = [
-                act(**activation_params),
-                StreamableConv1d(mult * n_filters + dimension//16, mult * n_filters, 1, norm='none', norm_kwargs=norm_params, causal=causal, pad_mode=pad_mode),
-            ]
-        self.wm_proj2 = nn.Sequential(*wm_proj2)
-        mult //= 2
-        
-        wm_proj3: tp.List[nn.Module] = [
-                act(**activation_params),
-                StreamableConv1d(mult * n_filters + dimension//16, mult * n_filters, 1, norm='none', norm_kwargs=norm_params, causal=causal, pad_mode=pad_mode),
-            ]
-        self.wm_proj3 = nn.Sequential(*wm_proj3)
-        mult //= 2
-        
-        wm_proj4: tp.List[nn.Module] = [
-                act(**activation_params),
-                StreamableConv1d(mult * n_filters + dimension//16, mult * n_filters, 1, norm='none', norm_kwargs=norm_params, causal=causal, pad_mode=pad_mode),
-            ]
-        self.wm_proj4 = nn.Sequential(*wm_proj4)
-
-
         wm_predictor: tp.List[nn.Module] = [
                 act(**activation_params),
                 StreamableConv1d(dimension, 2, 1, norm='none', norm_kwargs=norm_params, causal=causal, pad_mode=pad_mode),
@@ -419,46 +381,10 @@ class WMSEANetDecoder(nn.Module):
         self.wm_predictor = nn.Sequential(*wm_predictor)
 
     def forward(self, x, y, z):
-        # x: latents, y: labels, z: waveform
-        # get skip features and labels
-        skips = []
-        labels = []
-        z = self.skip_encoder.model[0:2](z)
-        skips.append(z)
-        labels.append(torch.repeat_interleave(y, repeats=self.ratios[0]*self.ratios[1]*self.ratios[2]*self.ratios[3], dim=-1).to(y.device))
-        z = self.skip_encoder.model[2:5](z)
-        skips.append(z)
-        labels.append(torch.repeat_interleave(y, repeats=self.ratios[0]*self.ratios[1]*self.ratios[2], dim=-1).to(y.device))
-        z = self.skip_encoder.model[5:8](z)
-        skips.append(z)
-        labels.append(torch.repeat_interleave(y, repeats=self.ratios[0]*self.ratios[1], dim=-1).to(y.device))
-        z = self.skip_encoder.model[8:11](z)
-        skips.append(z)
-        labels.append(torch.repeat_interleave(y, repeats=self.ratios[0], dim=-1).to(y.device))
-        z = self.skip_encoder.model[11:](z)
-        skips.append(z)
-        labels.append(y)
-        
         # decode
-        out = torch.cat([skips.pop(), self.wm_embed(labels.pop()).transpose(2, 1)], dim=1)
-        out = self.wm_proj0(out) + x
-        x = self.model[:4](out)
-        
-        out = torch.cat([skips.pop(), self.wm_embed(labels.pop()).transpose(2, 1)], dim=1)
-        out = self.wm_proj1(out) + x
-        x = self.model[4:7](out)
-
-        out = torch.cat([skips.pop(), self.wm_embed(labels.pop()).transpose(2, 1)], dim=1)
-        out = self.wm_proj2(out) + x
-        x = self.model[7:10](out)
-
-        out = torch.cat([skips.pop(), self.wm_embed(labels.pop()).transpose(2, 1)], dim=1)
-        out = self.wm_proj3(out) + x
-        x = self.model[10:13](out)
-
-        out = torch.cat([skips.pop(), self.wm_embed(labels.pop()).transpose(2, 1)], dim=1)
-        out = self.wm_proj4(out) + x
-        x = self.model[13:](out)
+        out = torch.cat([x, z, self.wm_embed(y).transpose(2, 1)], dim=1)
+        out = self.wm_proj0(out)
+        x = self.model(out)
 
         m = self.wm_encoder(x)
         m = self.wm_predictor(m)
