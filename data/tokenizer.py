@@ -123,14 +123,11 @@ class AudioTokenizer:
         return self._device
 
     def encode(self, wav: torch.Tensor) -> torch.Tensor:
-        codes = self.codec.encode(wav.to(self.device))
-        return [(codes[0], None)]
+        codes, scale, emb = self.codec.encode(wav.to(self.device))
+        return codes, scale, emb
 
-    def decode(self, frames: torch.Tensor) -> torch.Tensor:
-        return self.codec.decode(frames)
-
-    def wmdecode(self, frames: torch.Tensor, marks: torch.Tensor, wav: torch.Tensor):
-        out, _ = self.codec.wmdecode(frames.to(self.device), marks.to(self.device), wav.to(self.device))
+    def wmdecode(self, frames: torch.Tensor, marks: torch.Tensor, wav: torch.Tensor, scale: torch.Tensor):
+        out, _ = self.codec.wmdecode(frames.to(self.device), marks.to(self.device), wav.to(self.device), scale)
         return out
 
     def detect_watermark(self, wav: torch.Tensor):
