@@ -11,7 +11,7 @@ import numpy as np
 import random
 from argparse import Namespace
 from data.tokenizer import (
-    AudioTokenizer,
+    WMAudioTokenizer,
     TextTokenizer,
 )
 import torchaudio
@@ -63,7 +63,7 @@ phn2num = ckpt["phn2num"]
 model.to(device)
 model.eval()
 encodec_fn = "./pretrained_models/WMEncodec/checkpoint.th"
-audio_tokenizer = AudioTokenizer(signature=encodec_fn) # will also put the neural codec model on gpu
+audio_tokenizer = WMAudioTokenizer(signature=encodec_fn) # will also put the neural codec model on gpu
 text_tokenizer = TextTokenizer(backend="espeak", language='cmn')
 
 
