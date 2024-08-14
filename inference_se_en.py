@@ -18,7 +18,7 @@ import torchaudio
 import torchaudio.transforms as transforms
 from edit_utils_en import parse_edit
 from inference_scale import get_mask_interval
-from inference_scale import inference_one_sample
+from inference_scale import inference_one_sample_se
 import time
 from tqdm import tqdm
 
@@ -39,7 +39,6 @@ aug_text = True
 aug_context = False
 cfg_pretrained = False
 use_watermark = True
-tts = False
 
 def seed_everything(seed):
     os.environ['PYTHONHASHSEED'] = str(seed)
@@ -147,7 +146,7 @@ def main(orig_audio, orig_transcript, target_transcript, temp_folder, output_dir
     
     for num in tqdm(range(sample_batch_size)):
         seed_everything(seed+num)
-        orig_audio, new_audio = inference_one_sample(model, Namespace(**config), phn2num, text_tokenizer, audio_tokenizer, audio_fn, orig_transcript, target_transcript, mask_interval, cfg_coef, aug_text, aug_context, cfg_pretrained, use_watermark, tts, device, decode_config)
+        orig_audio, new_audio = inference_one_sample(model, Namespace(**config), phn2num, text_tokenizer, audio_tokenizer, audio_fn, orig_transcript, target_transcript, mask_interval, cfg_coef, aug_text, aug_context, cfg_pretrained, use_watermark, device, decode_config)
         # save segments for comparison
         orig_audio, new_audio = orig_audio[0].cpu(), new_audio[0].cpu()
         save_fn_new = f"{output_dir}/{savename}_new_seed{seed+num}.wav"
