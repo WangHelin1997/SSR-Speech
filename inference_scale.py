@@ -135,7 +135,7 @@ def inference_one_sample_se(model, model_args, phn2num, text_tokenizer, audio_to
 
         generated_sample = audio_tokenizer.wmdecode(encoded_frames, marks.to(encoded_frames.device), new_emb, scale)
     else:
-        generated_sample = audio_tokenizer.decode(encoded_frames)
+        generated_sample = audio_tokenizer.decode(encoded_frames, scale)
 
         
     return generated_sample
