@@ -234,7 +234,7 @@ class EncodecModel(CompressionModel):
         x, scale = self.preprocess(x)
         emb = self.encoder(x)
         codes = self.quantizer.encode(emb)
-        return codes, scale
+        return codes, scale, emb
 
     def decode(self, codes: torch.Tensor, scale: tp.Optional[torch.Tensor] = None):
         """Decode the given codes to a reconstructed representation, using the scale to perform
