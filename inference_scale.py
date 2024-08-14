@@ -8,10 +8,7 @@ import torch
 import torchaudio
 
 from data.tokenizer import (
-    AudioTokenizer,
-    TextTokenizer,
     tokenize_audio,
-    wmtokenize_audio,
     tokenize_text
 )
 import time
@@ -35,7 +32,7 @@ def inference_one_sample_tts(model, model_args, phn2num, text_tokenizer, audio_t
     prompt_text_tokens = torch.LongTensor(prompt_text_tokens).unsqueeze(0)
     prompt_text_tokens_lens = torch.LongTensor([prompt_text_tokens.shape[-1]])
 
-    encoded_frames, scale = tokenize_audio(audio_tokenizer, audio_fn)
+    encoded_frames, scale, emb = tokenize_audio(audio_tokenizer, audio_fn)
     original_audio = encoded_frames.transpose(2,1) # [1,T,K]
     assert original_audio.ndim==3 and original_audio.shape[0] == 1 and original_audio.shape[2] == model_args.n_codebooks, original_audio.shape
     logging.info(f"with direct encodec encoding before input, original audio length: {original_audio.shape[1]} codec frames, which is {original_audio.shape[1]/decode_config['codec_sr']:.2f} sec.")
@@ -74,7 +71,7 @@ def inference_one_sample_tts(model, model_args, phn2num, text_tokenizer, audio_t
 
 
 @torch.no_grad()
-def inference_one_sample_se(model, model_args, phn2num, text_tokenizer, audio_tokenizer, audio_fn, prompt_text, target_text, mask_interval, cfg_coef, aug_text, aug_context, cfg_pretrained, use_watermark, device, decode_config):
+def inference_one_sample_se(model, model_args, phn2num, text_tokenizer, audio_tokenizer, wmaudio_tokenizer, audio_fn, prompt_text, target_text, mask_interval, cfg_coef, aug_text, aug_context, cfg_pretrained, use_watermark, device, decode_config):
     # phonemize
     text_tokens = [phn2num[phn] for phn in
             tokenize_text(
@@ -92,7 +89,8 @@ def inference_one_sample_se(model, model_args, phn2num, text_tokenizer, audio_to
     prompt_text_tokens = torch.LongTensor(prompt_text_tokens).unsqueeze(0)
     prompt_text_tokens_lens = torch.LongTensor([prompt_text_tokens.shape[-1]])
 
-    encoded_frames, scale, emb = wmtokenize_audio(audio_tokenizer, audio_fn)
+    encoded_frames, scale, emb = tokenize_audio(audio_tokenizer, audio_fn)
+
     original_audio = encoded_frames.transpose(2,1) # [1,T,K]
     assert original_audio.ndim==3 and original_audio.shape[0] == 1 and original_audio.shape[2] == model_args.n_codebooks, original_audio.shape
     logging.info(f"with direct encodec encoding before input, original audio length: {original_audio.shape[1]} codec frames, which is {original_audio.shape[1]/decode_config['codec_sr']:.2f} sec.")
@@ -133,7 +131,7 @@ def inference_one_sample_se(model, model_args, phn2num, text_tokenizer, audio_to
         for i in range(len(ori_non_mask_intervals)):
             new_emb[..., non_mask_intervals[i][0]:non_mask_intervals[i][1]] = emb[..., ori_non_mask_intervals[i][0]:ori_non_mask_intervals[i][1]]
 
-        generated_sample = audio_tokenizer.wmdecode(encoded_frames, marks.to(encoded_frames.device), new_emb, scale)
+        generated_sample = wmaudio_tokenizer.wmdecode(encoded_frames, marks.to(encoded_frames.device), new_emb, scale)
     else:
         generated_sample = audio_tokenizer.decode(encoded_frames, scale)
 
