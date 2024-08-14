@@ -18,9 +18,10 @@ import torchaudio
 import torchaudio.transforms as transforms
 from edit_utils_en import parse_tts
 from inference_scale import get_mask_interval
-from inference_scale import inference_one_sample
+from inference_scale import inference_one_sample_tts
 import time
 from tqdm import tqdm
+import shutil
 
 # hyperparameters for inference
 sub_amount = 0.01
@@ -36,10 +37,7 @@ stop_repetition = 2 # -1 means do not adjust prob of silence tokens. if there ar
 sample_batch_size = 1 # what this will do to the model is that the model will run sample_batch_size examples of the same audio
 cfg_coef = 1.5
 aug_text = True
-aug_context = False
-cfg_pretrained = False
-use_watermark = True
-tts = True
+
 
 # what this will do to the model is that the model will run sample_batch_size examples of the same audio, and pick the one that's the shortest
 def seed_everything(seed):
@@ -63,7 +61,7 @@ config = vars(model.args)
 phn2num = ckpt["phn2num"]
 model.to(device)
 model.eval()
-encodec_fn = "./pretrained_models/WMEncodec/checkpoint.th"
+encodec_fn = "./pretrained_models/VoiceCraft/encodec_4cb2048_giga.th"
 audio_tokenizer = AudioTokenizer(signature=encodec_fn) # will also put the neural codec model on gpu
 text_tokenizer = TextTokenizer(backend="espeak")
 
@@ -125,14 +123,14 @@ def main(orig_audio, orig_transcript, target_transcript, temp_folder, output_dir
     os.makedirs(output_dir, exist_ok=True)
     for num in tqdm(range(sample_batch_size)):
         seed_everything(seed+num)
-        orig_audio, new_audio = inference_one_sample(model, Namespace(**config), phn2num, text_tokenizer, audio_tokenizer, audio_fn, orig_transcript, target_transcript, mask_interval, cfg_coef, aug_text, aug_context, cfg_pretrained, use_watermark, tts, device, decode_config)
+        new_audio = inference_one_sample_tts(model, Namespace(**config), phn2num, text_tokenizer, audio_tokenizer, audio_fn, orig_transcript, target_transcript, mask_interval, cfg_coef, aug_text, device, decode_config)
         # save segments for comparison
-        orig_audio, new_audio = orig_audio[0].cpu(), new_audio[0].cpu()
+        new_audio = new_audio[0].cpu()
         save_fn_new = f"{output_dir}/{savename}_new_seed{seed+num}.wav"
         torchaudio.save(save_fn_new, new_audio, codec_audio_sr)
     
     save_fn_orig = f"{output_dir}/{savename}_orig.wav"
-    torchaudio.save(save_fn_orig, orig_audio, codec_audio_sr)
+    shutil.copyfile(audio_fn, save_fn_orig)
         
     end_time = time.time()
     elapsed_time = end_time - start_time
