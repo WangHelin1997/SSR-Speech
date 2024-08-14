@@ -21,6 +21,7 @@ from inference_scale import get_mask_interval
 from inference_scale import inference_one_sample_se
 import time
 from tqdm import tqdm
+import shutil
 
 # hyperparameters for inference
 sub_amount = 0.16
@@ -146,14 +147,14 @@ def main(orig_audio, orig_transcript, target_transcript, temp_folder, output_dir
     
     for num in tqdm(range(sample_batch_size)):
         seed_everything(seed+num)
-        orig_audio, new_audio = inference_one_sample_se(model, Namespace(**config), phn2num, text_tokenizer, audio_tokenizer, audio_fn, orig_transcript, target_transcript, mask_interval, cfg_coef, aug_text, aug_context, cfg_pretrained, use_watermark, device, decode_config)
+        new_audio = inference_one_sample_se(model, Namespace(**config), phn2num, text_tokenizer, audio_tokenizer, audio_fn, orig_transcript, target_transcript, mask_interval, cfg_coef, aug_text, aug_context, cfg_pretrained, use_watermark, device, decode_config)
         # save segments for comparison
-        orig_audio, new_audio = orig_audio[0].cpu(), new_audio[0].cpu()
+        new_audio = new_audio[0].cpu()
         save_fn_new = f"{output_dir}/{savename}_new_seed{seed+num}.wav"
         torchaudio.save(save_fn_new, new_audio, codec_audio_sr)
     
     save_fn_orig = f"{output_dir}/{savename}_orig.wav"
-    torchaudio.save(save_fn_orig, orig_audio, codec_audio_sr)
+    shutil.copyfile(audio_fn, save_fn_orig)
         
     end_time = time.time()
     elapsed_time = end_time - start_time
