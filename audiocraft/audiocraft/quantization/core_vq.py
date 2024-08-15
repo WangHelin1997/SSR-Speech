@@ -317,31 +317,31 @@ class VectorQuantization(nn.Module):
         x = self.project_in(x)
         quantize, embed_ind = self._codebook(x)
 
-        if self.training:
-            quantize = x + (quantize - x).detach()
+        # if self.training:
+        #     quantize = x + (quantize - x).detach()
 
         loss = torch.tensor([0.0], device=device, requires_grad=self.training)
 
-        if self.training:
-            if self.commitment_weight > 0:
-                commit_loss = F.mse_loss(quantize.detach(), x)
-                loss = loss + commit_loss * self.commitment_weight
+        # if self.training:
+        #     if self.commitment_weight > 0:
+        #         commit_loss = F.mse_loss(quantize.detach(), x)
+        #         loss = loss + commit_loss * self.commitment_weight
 
-            if self.orthogonal_reg_weight > 0:
-                codebook = self.codebook
+        #     if self.orthogonal_reg_weight > 0:
+        #         codebook = self.codebook
 
-                if self.orthogonal_reg_active_codes_only:
-                    # only calculate orthogonal loss for the activated codes for this batch
-                    unique_code_ids = torch.unique(embed_ind)
-                    codebook = codebook[unique_code_ids]
+        #         if self.orthogonal_reg_active_codes_only:
+        #             # only calculate orthogonal loss for the activated codes for this batch
+        #             unique_code_ids = torch.unique(embed_ind)
+        #             codebook = codebook[unique_code_ids]
 
-                num_codes = codebook.shape[0]
-                if exists(self.orthogonal_reg_max_codes) and num_codes > self.orthogonal_reg_max_codes:
-                    rand_ids = torch.randperm(num_codes, device=device)[:self.orthogonal_reg_max_codes]
-                    codebook = codebook[rand_ids]
+        #         num_codes = codebook.shape[0]
+        #         if exists(self.orthogonal_reg_max_codes) and num_codes > self.orthogonal_reg_max_codes:
+        #             rand_ids = torch.randperm(num_codes, device=device)[:self.orthogonal_reg_max_codes]
+        #             codebook = codebook[rand_ids]
 
-                orthogonal_reg_loss = orthogonal_loss_fn(codebook)
-                loss = loss + orthogonal_reg_loss * self.orthogonal_reg_weight
+        #         orthogonal_reg_loss = orthogonal_loss_fn(codebook)
+        #         loss = loss + orthogonal_reg_loss * self.orthogonal_reg_weight
 
         quantize = self.project_out(quantize)
         quantize = self._postprocess(quantize)
