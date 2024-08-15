@@ -63,8 +63,8 @@ if __name__ == "__main__":
     ### phonemization
     # load tokenizer
     # load the encodec model
-    from audiocraft.solvers import CompressionSolver
-    model = CompressionSolver.model_from_checkpoint(args.encodec_model_path)
+    from audiocraft.solvers import WMCompressionSolver
+    model = WMCompressionSolver.model_from_checkpoint(args.encodec_model_path)
     model = model.cuda()
     model = model.eval()
 
