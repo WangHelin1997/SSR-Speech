@@ -61,7 +61,7 @@ class WMCompressionSolver(base.StandardSolver):
         for param in model.parameters():
             param.requires_grad = False
 
-    def build_model(self, checkpoint_path=None):
+    def build_model(self, checkpoint_path='/apdcephfs_cq10/share_1603164/user/helinhwang/VoiceCraft/pretrained_models/VoiceCraft/encodec_4cb2048_giga.th'):
         """Instantiate model and optimizer."""
         # Model and optimizer
         if checkpoint_path is not None:
@@ -71,10 +71,11 @@ class WMCompressionSolver(base.StandardSolver):
         self.freeze_parameters(self.model.encoder)
         self.freeze_parameters(self.model.decoder)
         self.freeze_parameters(self.model.quantizer)
-        self.optimizer = builders.get_optimizer(filter(lambda p: p.requires_grad, self.model.parameters()), self.cfg.optim)
+        self.optimizer = builders.get_optimizer(self.model.wmdecoder, self.cfg.optim)
         self.register_stateful('model', 'optimizer')
         self.register_best_state('model')
         self.register_ema('model')
+        print('build model successfully!')
 
     def build_dataloaders(self):
         """Instantiate audio dataloaders for each stage."""
@@ -350,7 +351,6 @@ class WMCompressionSolver(base.StandardSolver):
         assert 'best_state' in state and state['best_state'] != {}
         assert 'exported' not in state, "When loading an exported checkpoint, use the //pretrained/ prefix."
         encodec_state_dict = state['best_state']['model']
-
         wmencodec_state_dict = compression_model.state_dict()
         for name, param in encodec_state_dict.items():
             if name in wmencodec_state_dict:
