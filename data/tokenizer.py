@@ -105,7 +105,7 @@ class WMAudioTokenizer:
         signature = None
     ) -> None:
         from audiocraft.solvers import WMCompressionSolver
-        model = WMCompressionSolver.model_from_checkpoint(signature)
+        model = WMCompressionSolver.model_from_checkpoint(signature).eval()
         self.sample_rate = model.sample_rate
         self.channels = model.channels
         
@@ -126,6 +126,9 @@ class WMAudioTokenizer:
         codes, scale, emb = self.codec.encode(wav.to(self.device))
         return codes, scale, emb
 
+    def decode(self, frames: torch.Tensor, scale: torch.Tensor) -> torch.Tensor:
+        return self.codec.decode(frames, scale)
+
     def wmdecode(self, frames: torch.Tensor, marks: torch.Tensor, wav: torch.Tensor, scale: torch.Tensor):
         out, _ = self.codec.wmdecode(frames.to(self.device), marks.to(self.device), wav.to(self.device), scale)
         return out
@@ -135,56 +138,7 @@ class WMAudioTokenizer:
         return marks
 
 
-class AudioTokenizer:
-    """EnCodec audio."""
-
-    def __init__(
-        self,
-        device: Any = None,
-        signature = None
-    ) -> None:
-        from audiocraft.solvers import CompressionSolver
-        model = CompressionSolver.model_from_checkpoint(signature)
-        self.sample_rate = model.sample_rate
-        self.channels = model.channels
-        
-        if not device:
-            device = torch.device("cpu")
-            if torch.cuda.is_available():
-                device = torch.device("cuda:0")
-
-        self._device = device
-
-        self.codec = model.to(device)
-
-    @property
-    def device(self):
-        return self._device
-
-    def encode(self, wav: torch.Tensor) -> torch.Tensor:
-        codes, scale = self.codec.encode(wav.to(self.device))
-        return codes, scale
-
-    def decode(self, frames: torch.Tensor, scale: torch.Tensor) -> torch.Tensor:
-        return self.codec.decode(frames, scale)
-
-
-
 def tokenize_audio(tokenizer: AudioTokenizer, audio_path: str, offset = -1, num_frames=-1):
-    # Load and pre-process the audio waveform
-    if offset != -1 and num_frames!=-1:
-        wav, sr = torchaudio.load(audio_path, frame_offset=offset, num_frames=num_frames)
-    else:
-        wav, sr = torchaudio.load(audio_path)
-    wav = convert_audio(wav, sr, tokenizer.sample_rate, tokenizer.channels)
-    wav = wav.unsqueeze(0)
-
-    # Extract discrete codes from EnCodec
-    with torch.no_grad():
-        encoded_frames, scale = tokenizer.encode(wav)
-    return encoded_frames, scale
-
-def wmtokenize_audio(tokenizer: WMAudioTokenizer, audio_path: str, offset = -1, num_frames=-1):
     # Load and pre-process the audio waveform
     if offset != -1 and num_frames!=-1:
         wav, sr = torchaudio.load(audio_path, frame_offset=offset, num_frames=num_frames)
