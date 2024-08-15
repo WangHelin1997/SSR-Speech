@@ -96,7 +96,7 @@ def convert_audio(wav: torch.Tensor, sr: int, target_sr: int, target_channels: i
     wav = torchaudio.transforms.Resample(sr, target_sr)(wav)
     return wav
 
-class WMAudioTokenizer:
+class AudioTokenizer:
     """EnCodec audio."""
 
     def __init__(
