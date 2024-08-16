@@ -1,7 +1,7 @@
 # @ hwang258@jh.edu
 
 import os
-os.environ["CUDA_VISIBLE_DEVICES"]="4"
+os.environ["CUDA_VISIBLE_DEVICES"]="1"
 os.environ["USER"] = "root" # TODO change this to your username
 
 import shutil
@@ -16,7 +16,7 @@ from data.tokenizer import (
 )
 import torchaudio
 import torchaudio.transforms as transforms
-from edit_utils_en import parse_edit
+from edit_utils_en import parse_edit_en
 from inference_scale import get_mask_interval
 from inference_scale import inference_one_sample
 import time
@@ -35,11 +35,10 @@ kvcache = 1
 seed = 1
 silence_tokens = [1388,1898,131] # if there are long silence in the generated audio, reduce the stop_repetition to 3, 2 or even 1
 stop_repetition = 2 # -1 means do not adjust prob of silence tokens. if there are long silence or unnaturally strecthed words, increase sample_batch_size to 2, 3 or even 4
-sample_batch_size = 5 # what this will do to the model is that the model will run sample_batch_size examples of the same audio
+sample_batch_size = 5 # what this will do to the model is that the model will run sample_batch_size examples of the same audio, and pick the one that's the shortest
 cfg_coef = 1.5
 aug_text = True
 aug_context = False
-cfg_pretrained = False
 use_watermark = True
 tts = False
 
@@ -65,7 +64,7 @@ config = vars(model.args)
 phn2num = ckpt["phn2num"]
 model.to(device)
 model.eval()
-encodec_fn = "/apdcephfs_cq10/share_1603164/user/helinhwang/audiocraft/tmp/audiocraft_root/xps/4d60535d/checkpoint.th"
+encodec_fn = "/apdcephfs_cq10/share_1603164/user/helinhwang/audiocraft/tmp/audiocraft_root/xps/4d60535d/checkpoint_26.th"
 audio_tokenizer = AudioTokenizer(device, signature=encodec_fn) # will also put the neural codec model on gpu
 text_tokenizer = TextTokenizer(backend="espeak")
 
@@ -79,7 +78,7 @@ def main(filename, orig_transcript, target_transcript, temp_folder, output_dir, 
     align_fn = f"{align_temp}/{filename}.csv"
 
     # run the script to turn user input to the format that the model can take
-    operations, orig_spans = parse_edit(orig_transcript, target_transcript)
+    operations, orig_spans = parse_edit_en(orig_transcript, target_transcript)
     print(operations)
     print("orig_spans: ", orig_spans)
     
@@ -131,7 +130,7 @@ def main(filename, orig_transcript, target_transcript, temp_folder, output_dir, 
 
     for num in tqdm(range(sample_batch_size)):
         seed_everything(seed+num)
-        new_audio = inference_one_sample(model, Namespace(**config), phn2num, text_tokenizer, audio_tokenizer, audio_fn, orig_transcript, target_transcript, mask_interval, cfg_coef, aug_text, aug_context, cfg_pretrained, use_watermark, tts, device, decode_config)
+        new_audio = inference_one_sample(model, Namespace(**config), phn2num, text_tokenizer, audio_tokenizer, audio_fn, orig_transcript, target_transcript, mask_interval, cfg_coef, aug_text, aug_context, use_watermark, tts, device, decode_config)
         # save segments for comparison
         new_audio = new_audio[0].cpu()
         save_fn_new = f"{output_dir}/{savename}_new_seed{seed+num}.wav"
@@ -149,7 +148,7 @@ def main(filename, orig_transcript, target_transcript, temp_folder, output_dir, 
 if __name__ == "__main__":
     
     temp_folder = "/apdcephfs_cq10/share_1603164/user/helinhwang/cfg/SSR-Speech/test_data"
-    output_dir = f"./demo/generated_RealEdit_se/top_p{str(top_p)}/cfg_coef{str(cfg_coef)}/aug_text{str(aug_text)}/aug_context{aug_context}/cfg_pretrained{str(cfg_pretrained)}/use_watermark{str(use_watermark)}"
+    output_dir = f"./demo/generated_RealEdit_se/top_p{str(top_p)}/cfg_coef{str(cfg_coef)}/aug_text{str(aug_text)}/aug_context{aug_context}/use_watermark{str(use_watermark)}"
 
     data_dict = []
     wav_paths = glob.glob(os.path.join(temp_folder, "*.wav"))
@@ -174,6 +173,3 @@ if __name__ == "__main__":
             output_dir=output_dir, 
             savename=savename
         )
-
-
-
