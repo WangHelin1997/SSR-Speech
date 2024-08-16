@@ -41,7 +41,7 @@ print(f"using {device}")
 
 def parse_args():
     parser = argparse.ArgumentParser(description="inference speech editing")
-    parser.add_argument("--sub_amount", type=int, default=0.12, help="if the performance is not good, try modify this span")
+    parser.add_argument("--sub_amount", type=float, default=0.12, help="if the performance is not good, try modify this span")
     parser.add_argument('--codec_audio_sr', type=int, default=16000)
     parser.add_argument('--codec_sr', type=int, default=50)
     parser.add_argument('--top_k', type=int, default=0)
