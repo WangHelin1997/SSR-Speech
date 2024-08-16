@@ -172,7 +172,7 @@ python inference.py  \
     --savename "84_121550_000074_00000"
 ```
 
-For Mandarin zero-shot tts test, please run:
+For Mandarin zero-shot TTS test, please run:
 
 ```bash
 python inference.py  \
@@ -199,7 +199,7 @@ python inference.py  \
     --savename "pony"
 ```
 
-For English zero-shot tt test, please run:
+For English zero-shot TTS test, please run:
 
 ```bash
 python inference.py  \
