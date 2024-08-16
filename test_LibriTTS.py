@@ -16,7 +16,6 @@ from data.tokenizer import (
 )
 import torchaudio
 import torchaudio.transforms as transforms
-from edit_utils_en import parse_edit
 from inference_scale import get_mask_interval
 from inference_scale import inference_one_sample
 import time
@@ -40,9 +39,9 @@ sample_batch_size = 1 # what this will do to the model is that the model will ru
 cfg_coef = 1.5
 aug_text = True
 aug_context = False
-cfg_pretrained = False
 use_watermark = True
 tts = True
+
 
 def seed_everything(seed):
     os.environ['PYTHONHASHSEED'] = str(seed)
@@ -58,7 +57,7 @@ device = "cuda" if torch.cuda.is_available() else "cpu"
 print(f"using {device}")
 
 from models import ssr
-filepath = os.path.join('./pretrained_models/English_10k/e830M/', "best_bundle.pth")
+filepath = os.path.join('/apdcephfs_cq10/share_1603164/user/helinhwang/VoiceCraft/pretrained_models/English_10k/e830M/', "best_bundle.pth")
 ckpt = torch.load(filepath, map_location="cpu")
 model = ssr.SSR_Speech(ckpt["config"])
 model.load_state_dict(ckpt["model"])
@@ -66,7 +65,7 @@ config = vars(model.args)
 phn2num = ckpt["phn2num"]
 model.to(device)
 model.eval()
-encodec_fn = "./pretrained_models/checkpoint.th"
+encodec_fn = "/apdcephfs_cq10/share_1603164/user/helinhwang/audiocraft/tmp/audiocraft_root/xps/4d60535d/checkpoint_26.th"
 audio_tokenizer = AudioTokenizer(device, signature=encodec_fn) # will also put the neural codec model on gpu
 text_tokenizer = TextTokenizer(backend="espeak")
 
@@ -87,7 +86,7 @@ def main(filename, orig_transcript, target_transcript, temp_folder, output_dir, 
 
     for num in tqdm(range(sample_batch_size)):
         seed_everything(seed+num)
-        new_audio = inference_one_sample(model, Namespace(**config), phn2num, text_tokenizer, audio_tokenizer, audio_fn, orig_transcript, target_transcript, mask_interval, cfg_coef, aug_text, aug_context, cfg_pretrained, use_watermark, tts, device, decode_config)
+        new_audio = inference_one_sample(model, Namespace(**config), phn2num, text_tokenizer, audio_tokenizer, audio_fn, orig_transcript, target_transcript, mask_interval, cfg_coef, aug_text, aug_context, use_watermark, tts, device, decode_config)
         # save segments for comparison
         new_audio = new_audio[0].cpu()
         save_fn_new = f"{output_dir}/{savename}_new_seed{seed+num}.wav"
@@ -104,8 +103,8 @@ def main(filename, orig_transcript, target_transcript, temp_folder, output_dir, 
 
 if __name__ == "__main__":
     
-    temp_folder = "./test_tts_data"
-    output_dir = f"./demo/generated_LibriTTS/top_p{str(top_p)}/cfg_coef{str(cfg_coef)}/aug_text{str(aug_text)}/aug_context{aug_context}/cfg_pretrained{str(cfg_pretrained)}/use_watermark{str(use_watermark)}"
+    temp_folder = "/apdcephfs_cq10/share_1603164/user/helinhwang/cfg/SSR-Speech/test_tts_data"
+    output_dir = f"./demo/generated_LibriTTS/watermarks/"
 
     data_dict = []
     wav_paths = glob.glob(os.path.join(temp_folder, "*.wav"))
