@@ -218,12 +218,12 @@ python inference.py  \
     --language 'en' \
     --model_path "./pretrained_models/English_10k/e830M/best_bundle.pth" \
     --codec_path "./pretrained_models/WMEncodec/checkpoint.th" \
-    --orig_audio "./demo/84_121550_000074_00000.wav" \
-    --orig_transcript "But when I had approached so near to them The common object, which the sense deceives, Lost not by distance any of its marks," \
-    --target_transcript "But when I had approached so near to them The common object, which the sense deceives, for his work and for his feats of strength, I cannot believe that the same model can also do text to speech synthesis too!" \
+    --orig_audio "./demo/5895_34622_000026_000002.wav" \
+    --orig_transcript "Gwynplaine had, besides, for his work and for his feats of strength, round his neck and over his shoulders, an esclavine of leather." \
+    --target_transcript "Gwynplaine had, besides, for his work and for his feats of strength, I cannot believe that the same model can also do text to speech synthesis too!" \
     --temp_folder "./demo/temp"\
     --output_dir "./demo/generated_tts"\
-    --savename "84_121550_000074_00000"
+    --savename "5895_34622_000026_000002"
 ```
 
 ## Training WaterMarking Encodec
