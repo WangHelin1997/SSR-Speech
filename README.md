@@ -72,7 +72,7 @@ python encode.py \
 --start 0 \
 --end 10000000
 ```
-Here, `AUDIO_PATH` is the path where the json file was saved, `SAVE_DIR` is the path where the processed data will be saved, `ENCODEC_PATH` is the path of a pretrained encodec model and `DATA_NAME` is the saved name of the dataset.
+Here, `AUDIO_PATH` is the path where the json file was saved, `SAVE_DIR` is the path where the processed data will be saved, `ENCODEC_PATH` is the path of a pretrained encodec model and `DATA_NAME` is the saved name of the dataset. Here the `start` and `end` indexes are used for multi-gpu processing.
 
 3. Convert transcripts into phoneme sequence. Run:
 
