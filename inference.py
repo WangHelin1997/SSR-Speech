@@ -156,7 +156,7 @@ def main(args):
             combined_spans.append(current_span)
             return combined_spans
         
-        morphed_span = [(max(start - args.sub_amount, 0), min(end + args.sub_amount, audio_dur))
+        morphed_span = [[max(start - args.sub_amount, 0), min(end + args.sub_amount, audio_dur)]
                         for start, end in zip(starting_intervals, ending_intervals)] # in seconds
         morphed_span = combine_spans(morphed_span, threshold=0.2)
         print("morphed_spans: ", morphed_span)
