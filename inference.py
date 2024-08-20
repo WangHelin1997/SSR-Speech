@@ -96,7 +96,10 @@ def main(args):
     os.system(f"cp {args.orig_audio} {args.temp_folder}")
     filename = os.path.splitext(args.orig_audio.split("/")[-1])[0]
     with open(f"{args.temp_folder}/{filename}.txt", "w") as f:
-        f.write(args.orig_transcript)
+        if args.language == 'zh':
+            f.write(' '.join(orig_transcript))
+        else:
+            f.write(args.orig_transcript)
 
     # resampling audio to 16k Hz
     import librosa
