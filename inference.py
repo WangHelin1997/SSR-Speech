@@ -97,7 +97,7 @@ def main(args):
     filename = os.path.splitext(args.orig_audio.split("/")[-1])[0]
     with open(f"{args.temp_folder}/{filename}.txt", "w") as f:
         if args.language == 'zh':
-            f.write(' '.join(orig_transcript))
+            f.write(' '.join(args.orig_transcript))
         else:
             f.write(args.orig_transcript)
 
