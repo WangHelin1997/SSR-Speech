@@ -297,9 +297,9 @@ class WMCompressionSolver(base.StandardSolver):
             return models.CompressionModel.get_pretrained(name, device)
         logger = logging.getLogger(__name__)
         logger.info(f"Loading compression model from checkpoint: {checkpoint_path}")
-        _checkpoint_path = checkpoint.resolve_checkpoint_path(checkpoint_path, use_fsdp=False)
-        assert _checkpoint_path is not None, f"Could not resolve compression model checkpoint path: {checkpoint_path}"
-        state = checkpoint.load_checkpoint(_checkpoint_path)
+        # _checkpoint_path = checkpoint.resolve_checkpoint_path(checkpoint_path, use_fsdp=False)
+        # assert _checkpoint_path is not None, f"Could not resolve compression model checkpoint path: {checkpoint_path}"
+        state = checkpoint.load_checkpoint(checkpoint_path)
         assert state is not None and 'xp.cfg' in state, f"Could not load compression model from ckpt: {checkpoint_path}"
         cfg = state['xp.cfg']
         cfg.device = device
@@ -334,9 +334,9 @@ class WMCompressionSolver(base.StandardSolver):
             return models.CompressionModel.get_pretrained(name, device)
         logger = logging.getLogger(__name__)
         logger.info(f"Loading compression model from checkpoint: {checkpoint_path}")
-        _checkpoint_path = checkpoint.resolve_checkpoint_path(checkpoint_path, use_fsdp=False)
-        assert _checkpoint_path is not None, f"Could not resolve compression model checkpoint path: {checkpoint_path}"
-        state = checkpoint.load_checkpoint(_checkpoint_path)
+        # _checkpoint_path = checkpoint.resolve_checkpoint_path(checkpoint_path, use_fsdp=False)
+        # assert _checkpoint_path is not None, f"Could not resolve compression model checkpoint path: {checkpoint_path}"
+        state = checkpoint.load_checkpoint(checkpoint_path)
         assert state is not None and 'xp.cfg' in state, f"Could not load compression model from ckpt: {checkpoint_path}"
         cfg = state['xp.cfg']
         cfg.device = device
