@@ -93,6 +93,7 @@ def main(args):
     start_time = time.time()
     # move the audio and transcript to temp folder
     os.makedirs(args.temp_folder, exist_ok=True)
+    os.makedirs(args.output_dir, exist_ok=True)
     os.system(f"cp {args.orig_audio} {args.temp_folder}")
     filename = os.path.splitext(args.orig_audio.split("/")[-1])[0]
     with open(f"{args.temp_folder}/{filename}.txt", "w") as f:
@@ -163,7 +164,6 @@ def main(args):
                         for start, end in zip(starting_intervals, ending_intervals)] # in seconds
         morphed_span = combine_spans(morphed_span, threshold=0.2)
         print("morphed_spans: ", morphed_span)
-        os.makedirs(args.output_dir, exist_ok=True)
         save_morphed_span = f"{args.output_dir}/{args.savename}_mask.pt"
         torch.save(morphed_span, save_morphed_span)
         mask_interval = [[round(span[0]*args.codec_sr), round(span[1]*args.codec_sr)] for span in morphed_span]
