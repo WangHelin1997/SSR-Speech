@@ -109,12 +109,12 @@ def main(args):
     os.makedirs(align_temp, exist_ok=True)
     if args.mfa:
         if args.use_downloaded_mfa:
-            os.system(f"mfa align --overwrite -j 1 --output_format csv {args.temp_folder} {args.mfa_dict_path} {args.mfa_path} {args.align_temp} --clean")
+            os.system(f"mfa align --overwrite -j 1 --output_format csv {args.temp_folder} {args.mfa_dict_path} {args.mfa_path} {align_temp} --clean")
         else:
             if args.language == 'zh':
-                os.system(f"mfa align --overwrite -j 1 --output_format csv {args.temp_folder} mandarin_china_mfa mandarin_mfa {args.align_temp} --clean")
+                os.system(f"mfa align --overwrite -j 1 --output_format csv {args.temp_folder} mandarin_china_mfa mandarin_mfa {align_temp} --clean")
             elif args.language == 'en':
-                os.system(f"mfa align --overwrite -j 1 --output_format csv {args.temp_folder} english_us_arpa english_us_arpa {args.align_temp} --clean")
+                os.system(f"mfa align --overwrite -j 1 --output_format csv {args.temp_folder} english_us_arpa english_us_arpa {align_temp} --clean")
 
     audio_fn = f"{args.temp_folder}/{filename}.wav"
     transcript_fn = f"{args.temp_folder}/{filename}.txt"
