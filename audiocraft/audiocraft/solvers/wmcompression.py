@@ -359,6 +359,7 @@ class WMCompressionSolver(base.StandardSolver):
         compression_model.load_state_dict(wmencodec_state_dict)
         compression_model.wmdecoder.model.load_state_dict(compression_model.decoder.model.state_dict())
         compression_model.wmdecoder.wm_encoder.load_state_dict(compression_model.encoder.state_dict())
+        compression_model.wmdecoder.skip_encoder.load_state_dict(compression_model.encoder.state_dict())
         
         compression_model.eval()
         logger.info("Compression model loaded!")
