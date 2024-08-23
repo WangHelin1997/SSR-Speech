@@ -25,7 +25,7 @@ from phonemizer.backend.espeak.language_switch import LanguageSwitch
 from phonemizer.backend.espeak.words_mismatch import WordMismatch
 from phonemizer.punctuation import Punctuation
 from phonemizer.separator import Separator
-
+import torch.nn.functional as F
 
 
 class TextTokenizer:
@@ -144,6 +144,12 @@ def tokenize_audio(tokenizer: AudioTokenizer, audio_path: str, offset = -1, num_
         wav, sr = torchaudio.load(audio_path, frame_offset=offset, num_frames=num_frames)
     else:
         wav, sr = torchaudio.load(audio_path)
+
+    current_length = wav.shape[-1]
+    padding_length = (multiple - (current_length % multiple)) % multiple
+    if padding_length > 0:
+        wav = F.pad(wav, (0, padding_length), "constant", 0)
+    
     wav = convert_audio(wav, sr, tokenizer.sample_rate, tokenizer.channels)
     wav = wav.unsqueeze(0)
 
