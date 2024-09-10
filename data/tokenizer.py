@@ -138,7 +138,7 @@ class AudioTokenizer:
         return marks
 
 
-def tokenize_audio(tokenizer: AudioTokenizer, audio_path: str, offset = -1, num_frames=-1):
+def tokenize_audio(tokenizer: AudioTokenizer, audio_path: str, offset = -1, num_frames=-1, multiple=320):
     # Load and pre-process the audio waveform
     if offset != -1 and num_frames!=-1:
         wav, sr = torchaudio.load(audio_path, frame_offset=offset, num_frames=num_frames)
