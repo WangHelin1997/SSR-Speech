@@ -6,7 +6,7 @@ import os, random
 import numpy as np
 import torch
 import torchaudio
-
+import torch.nn.functional as F
 from data.tokenizer import (
     tokenize_audio,
     tokenize_text
