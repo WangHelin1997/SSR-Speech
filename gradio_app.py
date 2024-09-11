@@ -44,6 +44,27 @@ def seed_everything(seed):
         torch.backends.cudnn.benchmark = False
         torch.backends.cudnn.deterministic = True
 
+def get_mask_interval(transcribe_state, word_span):
+    words = transcribe_state['words']
+    data = [[item['start'], item['end'], item['word']] for item in words]
+    s, e = word_span[0], word_span[1]
+    assert s <= e, f"s:{s}, e:{e}"
+    assert s >= 0, f"s:{s}"
+    assert e <= len(data), f"e:{e}"
+    if e == 0: # start
+        start = 0.
+        end = float(data[0][0])
+    elif s == len(data): # end
+        start = float(data[-1][1])
+        end = float(data[-1][1]) # don't know the end yet
+    elif s == e: # insert
+        start = float(data[s-1][1])
+        end = float(data[s][0])
+    else:
+        start = float(data[s-1][1]) if s > 0 else float(data[s][0])
+        end = float(data[e][0]) if e < len(data) else float(data[-1][1])
+
+    return (start, end)
 
 class WhisperxAlignModel:
     def __init__(self):
@@ -107,10 +128,15 @@ def load_models(whisper_backend_name, whisper_model_name, alignment_model_name, 
                 raise gr.Error("Align model required for whisperx backend")
             transcribe_model = WhisperxModel(whisper_model_name, align_model)
 
-    ssrspeech_name = f"{ssrspeech_model_name}.pth"
-    model = ssr.SSR_Speech.from_pretrained(f"westbrook/SSR-Speech-{ssrspeech_name}")
-    phn2num = model.args.phn2num
+    ssrspeech_fn = f"{MODELS_PATH}/{ssrspeech_model_name}.pth"
+    if not os.path.exists(ssrspeech_fn):
+        os.system(f"wget https://huggingface.co/westbrook/SSR-Speech-{ssrspeech_model_name}/resolve/main/{ssrspeech_model_name}.pth -O " + ssrspeech_fn)
+
+    ckpt = torch.load(ssrspeech_fn)
+    model = ssr.SSR_Speech(ckpt["config"])
+    model.load_state_dict(ckpt["model"])
     config = model.args
+    phn2num = ckpt["phn2num"]
     model.to(device)
 
     encodec_fn = f"{MODELS_PATH}/wmencodec.th"
@@ -151,9 +177,6 @@ def transcribe(seed, audio_path):
 
     return [
         state["transcript"], state["transcript_with_start_time"], state["transcript_with_end_time"],
-        gr.Dropdown(value=state["word_bounds"][-1], choices=state["word_bounds"], interactive=True), # prompt_to_word
-        gr.Dropdown(value=state["word_bounds"][0], choices=state["word_bounds"], interactive=True), # edit_from_word
-        gr.Dropdown(value=state["word_bounds"][-1], choices=state["word_bounds"], interactive=True), # edit_to_word
         state
     ]
 
@@ -196,9 +219,6 @@ def align(seed, transcript, audio_path):
 
     return [
         state["transcript_with_start_time"], state["transcript_with_end_time"],
-        gr.Dropdown(value=state["word_bounds"][-1], choices=state["word_bounds"], interactive=True), # prompt_to_word
-        gr.Dropdown(value=state["word_bounds"][0], choices=state["word_bounds"], interactive=True), # edit_from_word
-        gr.Dropdown(value=state["word_bounds"][-1], choices=state["word_bounds"], interactive=True), # edit_to_word
         state
     ]
 
@@ -220,97 +240,122 @@ def replace_numbers_with_words(sentence):
             return num # In case num2words fails (unlikely with digits but just to be safe)
     return re.sub(r'\b\d+\b', replace_with_words, sentence) # Regular expression that matches numbers
 
-def run(seed, left_margin, right_margin, codec_audio_sr, codec_sr, top_k, top_p, temperature,
-        stop_repetition, sample_batch_size, kvcache, silence_tokens,
-        audio_path, transcribe_state, transcript, smart_transcript,
-        mode, prompt_end_time, edit_start_time, edit_end_time,
-        split_text, selected_sentence, previous_audio_tensors):
+def run(seed, sub_amount, ssrspeech_model_choice, codec_audio_sr, codec_sr, top_k, top_p, temperature,
+        stop_repetition, kvcache, silence_tokens, aug_text, cfg_coef,
+        audio_path, transcribe_state, original_transcript, transcript,
+        mode, selected_sentence, previous_audio_tensors):
+
+    aug_text = True if aug_text == 1 else False
     if ssrspeech_model is None:
         raise gr.Error("ssrspeech model not loaded")
-    if smart_transcript and (transcribe_state is None):
-        raise gr.Error("Can't use smart transcript: whisper transcript not found")
+    
+    # resample audio
+    audio, _ = librosa.load(audio_path, sr=16000)
+    sf.write(audio_path, audio, 16000)
 
     seed_everything(seed)
     transcript = replace_numbers_with_words(transcript).replace("  ", " ").replace("  ", " ") # replace numbers with words, so that the phonemizer can do a better job
 
-    if mode == "Long TTS":
-        if split_text == "Newline":
-            sentences = transcript.split('\n')
-        else:
-            from nltk.tokenize import sent_tokenize
-            sentences = sent_tokenize(transcript.replace("\n", " "))
-    elif mode == "Rerun":
+    if mode == "Rerun":
         colon_position = selected_sentence.find(':')
         selected_sentence_idx = int(selected_sentence[:colon_position])
         sentences = [selected_sentence[colon_position + 1:]]
     else:
         sentences = [transcript.replace("\n", " ")]
 
-    info = torchaudio.info(audio_path)
-    audio_dur = info.num_frames / info.sample_rate
+
 
     audio_tensors = []
     inference_transcript = ""
     for sentence in sentences:
         decode_config = {"top_k": top_k, "top_p": top_p, "temperature": temperature, "stop_repetition": stop_repetition,
-                         "kvcache": kvcache, "codec_audio_sr": codec_audio_sr, "codec_sr": codec_sr,
-                         "silence_tokens": silence_tokens, "sample_batch_size": sample_batch_size}
-        if mode != "Edit":
-            from inference_tts_scale import inference_one_sample
-
-            if smart_transcript:
-                target_transcript = ""
-                for word in transcribe_state["words_info"]:
-                    if word["end"] < prompt_end_time:
-                        target_transcript += word["word"] + (" " if word["word"][-1] != " " else "")
-                    elif (word["start"] + word["end"]) / 2 < prompt_end_time:
-                        # include part of the word it it's big, but adjust prompt_end_time
-                        target_transcript += word["word"] + (" " if word["word"][-1] != " " else "")
-                        prompt_end_time = word["end"]
-                        break
+                         "kvcache": kvcache, "codec_audio_sr": codec_audio_sr, "codec_sr": codec_sr}
+        
+         # run the script to turn user input to the format that the model can take
+        if mode == "Edit":
+            operations, orig_spans = parse_edit_en(original_transcript, sentence) if ssrspeech_model_choice == 'English' else parse_edit_zh(original_transcript, sentence)
+            print(operations)
+            print("orig_spans: ", orig_spans)
+            
+            if len(orig_spans) > 3:
+                raise gr.Error("Current model only supports maximum 3 editings")
+                
+            starting_intervals = []
+            ending_intervals = []
+            for orig_span in orig_spans:
+                start, end = get_mask_interval(transcribe_state, orig_span)
+                starting_intervals.append(start)
+                ending_intervals.append(end)
+        
+            print("intervals: ", starting_intervals, ending_intervals)
+        
+            info = torchaudio.info(audio_path)
+            audio_dur = info.num_frames / info.sample_rate
+            
+            def combine_spans(spans, threshold=0.2):
+                spans.sort(key=lambda x: x[0])
+                combined_spans = []
+                current_span = spans[0]
+        
+                for i in range(1, len(spans)):
+                    next_span = spans[i]
+                    if current_span[1] >= next_span[0] - threshold:
+                        current_span[1] = max(current_span[1], next_span[1])
                     else:
-                        break
-                target_transcript += f" {sentence}"
-            else:
-                target_transcript = sentence
+                        combined_spans.append(current_span)
+                        current_span = next_span
+                combined_spans.append(current_span)
+                return combined_spans
+            
+            morphed_span = [[max(start - sub_amount, 0), min(end + sub_amount, audio_dur)]
+                            for start, end in zip(starting_intervals, ending_intervals)] # in seconds
+            morphed_span = combine_spans(morphed_span, threshold=0.2)
+            print("morphed_spans: ", morphed_span)
+            mask_interval = [[round(span[0]*codec_sr), round(span[1]*codec_sr)] for span in morphed_span]
+            mask_interval = torch.LongTensor(mask_interval) # [M,2], M==1 for now
 
-            inference_transcript += target_transcript + "\n"
-            target_transcript = re.sub(_whitespace_re, " ", target_transcript)
-            prompt_end_frame = int(min(audio_dur, prompt_end_time) * info.sample_rate)
-            _, gen_audio = inference_one_sample(ssrspeech_model["model"],
-                                                ssrspeech_model["config"],
-                                                ssrspeech_model["phn2num"],
-                                                ssrspeech_model["text_tokenizer"], ssrspeech_model["audio_tokenizer"],
-                                                audio_path, target_transcript, device, decode_config,
-                                                prompt_end_frame)
+            gen_audio = inference_one_sample(
+                ssrspeech_model["model"],
+                ssrspeech_model["config"],
+                ssrspeech_model["phn2num"],
+                ssrspeech_model["text_tokenizer"], 
+                ssrspeech_model["audio_tokenizer"],
+                audio_path, original_transcript, sentence, mask_interval,
+                cfg_coef, aug_text, False, True, False,
+                device, decode_config
+                )
         else:
-            from inference_speech_editing_scale import inference_one_sample
+            orig_spans = parse_tts_en(original_transcript, sentence) if ssrspeech_model_choice == 'English' else parse_tts_zh(original_transcript, sentence)
+            print("orig_spans: ", orig_spans)
+                
+            starting_intervals = []
+            ending_intervals = []
+            for orig_span in orig_spans:
+                start, end = get_mask_interval(transcribe_state, orig_span)
+                starting_intervals.append(start)
+                ending_intervals.append(end)
+        
+            print("intervals: ", starting_intervals, ending_intervals)
+        
+            info = torchaudio.info(audio_path)
+            audio_dur = info.num_frames / info.sample_rate
+            
+            morphed_span = [(max(start, 1/codec_sr), min(end, audio_dur))
+                            for start, end in zip(starting_intervals, ending_intervals)] # in seconds
+            mask_interval = [[round(span[0]*codec_sr), round(span[1]*codec_sr)] for span in morphed_span]
+            mask_interval = torch.LongTensor(mask_interval) # [M,2], M==1 for now
+            print("mask_interval: ", mask_interval)
+            gen_audio = inference_one_sample(
+                ssrspeech_model["model"],
+                ssrspeech_model["config"],
+                ssrspeech_model["phn2num"],
+                ssrspeech_model["text_tokenizer"], 
+                ssrspeech_model["audio_tokenizer"],
+                audio_path, original_transcript, sentence, mask_interval,
+                cfg_coef, aug_text, False, True, True,
+                device, decode_config
+                )
 
-            if smart_transcript:
-                target_transcript = ""
-                for word in transcribe_state["words_info"]:
-                    if word["start"] < edit_start_time:
-                        target_transcript += word["word"] + (" " if word["word"][-1] != " " else "")
-                    else:
-                        break
-                target_transcript += f" {sentence}"
-                for word in transcribe_state["words_info"]:
-                    if word["end"] > edit_end_time:
-                        target_transcript += word["word"] + (" " if word["word"][-1] != " " else "")
-            else:
-                target_transcript = sentence
-
-            inference_transcript += target_transcript + "\n"
-            target_transcript = re.sub(_whitespace_re, " ", target_transcript)
-            morphed_span = (max(edit_start_time - left_margin, 1 / codec_sr), min(edit_end_time + right_margin, audio_dur))
-            mask_interval = [[round(morphed_span[0]*codec_sr), round(morphed_span[1]*codec_sr)]]
-            mask_interval = torch.LongTensor(mask_interval)
-
-            _, gen_audio = inference_one_sample(ssrspeech_model["model"],
-                                                ssrspeech_model["config"],
-                                                ssrspeech_model["phn2num"],
-                                                ssrspeech_model["text_tokenizer"], ssrspeech_model["audio_tokenizer"],
-                                                audio_path, target_transcript, mask_interval, device, decode_config)
         gen_audio = gen_audio[0].cpu()
         audio_tensors.append(gen_audio)
 
@@ -345,8 +390,6 @@ def change_mode(mode):
         gr.Group(visible=mode != "Edit"),
         gr.Group(visible=mode == "Edit"),
         gr.Radio(visible=mode == "Edit"),
-        gr.Radio(visible=mode == "Long TTS"),
-        gr.Group(visible=mode == "Long TTS"),
     ]
 
 
@@ -443,8 +486,8 @@ def get_app():
             with gr.Column(scale=5):
                 with gr.Accordion("Select models", open=False) as models_selector:
                     with gr.Row():
-                        ssrspeech_model_choice = gr.Radio(label="ssrspeech model", value="830M_TTSEnhanced",
-                                                        choices=["330M", "830M", "330M_TTSEnhanced", "830M_TTSEnhanced"])
+                        ssrspeech_model_choice = gr.Radio(label="ssrspeech model", value="English",
+                                                        choices=["English", "Mandarin"])
                         whisper_backend_choice = gr.Radio(label="Whisper backend", value="whisperX", choices=["whisperX", "whisper"])
                         whisper_model_choice = gr.Radio(label="Whisper model", value="base.en",
                                                         choices=[None, "base.en", "small.en", "medium.en", "large"])
@@ -467,29 +510,36 @@ def get_app():
             with gr.Column(scale=3):
                 with gr.Group():
                     transcript = gr.Textbox(label="Text", lines=7, value=demo_text["TTS"]["smart"])
-                    with gr.Row():
-                        smart_transcript = gr.Checkbox(label="Smart transcript", value=True)
-                        with gr.Accordion(label="?", open=False):
-                            info = gr.Markdown(value=smart_transcript_info)
+                    # with gr.Row():
+                    #     smart_transcript = gr.Checkbox(label="Smart transcript", value=True)
+                    #     with gr.Accordion(label="?", open=False):
+                    #         info = gr.Markdown(value=smart_transcript_info)
 
                     with gr.Row():
-                        mode = gr.Radio(label="Mode", choices=["TTS", "Edit", "Long TTS"], value="TTS")
-                        split_text = gr.Radio(label="Split text", choices=["Newline", "Sentence"], value="Newline",
-                                            info="Split text into parts and run TTS for each part.", visible=False)
-                        edit_word_mode = gr.Radio(label="Edit word mode", choices=["Replace half", "Replace all"], value="Replace all",
-                                                info="What to do with first and last word", visible=False)
+                        mode = gr.Radio(label="Mode", choices=["Edit", "TTS"], value="Edit")
+                        # split_text = gr.Radio(label="Split text", choices=["Newline", "Sentence"], value="Newline",
+                        #                     info="Split text into parts and run TTS for each part.", visible=False)
+                        # edit_word_mode = gr.Radio(label="Edit word mode", choices=["Replace half", "Replace all"], value="Replace all",
+                        #                         info="What to do with first and last word", visible=False)
 
-                    with gr.Group() as tts_mode_controls:
-                        prompt_to_word = gr.Dropdown(label="Last word in prompt", choices=demo_words, value=demo_words[11], interactive=True)
-                        prompt_end_time = gr.Slider(label="Prompt end time", minimum=0, maximum=7.614, step=0.001, value=3.600)
+                    # with gr.Row():
+                    #     mode = gr.Radio(label="Mode", choices=["TTS", "Edit", "Long TTS"], value="TTS")
+                    #     split_text = gr.Radio(label="Split text", choices=["Newline", "Sentence"], value="Newline",
+                    #                         info="Split text into parts and run TTS for each part.", visible=False)
+                    #     edit_word_mode = gr.Radio(label="Edit word mode", choices=["Replace half", "Replace all"], value="Replace all",
+                    #                             info="What to do with first and last word", visible=False)
 
-                    with gr.Group(visible=False) as edit_mode_controls:
-                        with gr.Row():
-                            edit_from_word = gr.Dropdown(label="First word to edit", choices=demo_words, value=demo_words[12], interactive=True)
-                            edit_to_word = gr.Dropdown(label="Last word to edit", choices=demo_words, value=demo_words[18], interactive=True)
-                        with gr.Row():
-                            edit_start_time = gr.Slider(label="Edit from time", minimum=0, maximum=7.614, step=0.001, value=4.022)
-                            edit_end_time = gr.Slider(label="Edit to time", minimum=0, maximum=7.614, step=0.001, value=5.768)
+                    # with gr.Group() as tts_mode_controls:
+                    #     prompt_to_word = gr.Dropdown(label="Last word in prompt", choices=demo_words, value=demo_words[11], interactive=True)
+                    #     prompt_end_time = gr.Slider(label="Prompt end time", minimum=0, maximum=7.614, step=0.001, value=3.600)
+
+                    # with gr.Group(visible=False) as edit_mode_controls:
+                    #     with gr.Row():
+                    #         edit_from_word = gr.Dropdown(label="First word to edit", choices=demo_words, value=demo_words[12], interactive=True)
+                    #         edit_to_word = gr.Dropdown(label="Last word to edit", choices=demo_words, value=demo_words[18], interactive=True)
+                    #     with gr.Row():
+                    #         edit_start_time = gr.Slider(label="Edit from time", minimum=0, maximum=7.614, step=0.001, value=4.022)
+                    #         edit_end_time = gr.Slider(label="Edit to time", minimum=0, maximum=7.614, step=0.001, value=5.768)
 
                     run_btn = gr.Button(value="Run")
 
@@ -508,15 +558,14 @@ def get_app():
             with gr.Accordion("Generation Parameters - change these if you are unhappy with the generation", open=False):
                 stop_repetition = gr.Radio(label="stop_repetition", choices=[-1, 1, 2, 3, 4], value=2,
                                         info="if there are long silence in the generated audio, reduce the stop_repetition to 2 or 1. -1 = disabled")
-                sample_batch_size = gr.Number(label="speech rate", value=1, precision=0,
-                                            info="The higher the number, the faster the output will be. "
-                                                "Under the hood, the model will generate this many samples and choose the shortest one. "
-                                                "For giga330M_TTSEnhanced, 1 or 2 should be fine since the model is trained to do TTS.")
                 seed = gr.Number(label="seed", value=-1, precision=0, info="random seeds always works :)")
                 kvcache = gr.Radio(label="kvcache", choices=[0, 1], value=1,
                                     info="set to 0 to use less VRAM, but with slower inference")
-                left_margin = gr.Number(label="left_margin", value=0.12, info="margin to the left of the editing segment")
-                right_margin = gr.Number(label="right_margin", value=0.12, info="margin to the right of the editing segment")
+                aug_text = gr.Radio(label="aug_text", choices=[0, 1], value=1,
+                                    info="set to 1 to use cfg")
+                cfg_coef = gr.Number(label="cfg_coef", value=1.5,
+                                    info="cfg guidance scale, 1.5 is a good value")
+                sub_amount = gr.Number(label="sub_amount", value=0.12, info="margin to the left and right of the editing segment")
                 top_p = gr.Number(label="top_p", value=0.8, info="0.9 is a good value, 0.8 is also good")
                 temperature = gr.Number(label="temperature", value=1, info="haven't try other values, do not recommend to change")
                 top_k = gr.Number(label="top_k", value=0, info="0 means we don't use topk sampling, because we use topp sampling")
@@ -529,46 +578,47 @@ def get_app():
         transcribe_state = gr.State(value={"words_info": demo_words_info})
 
 
-        mode.change(fn=update_demo,
-                    inputs=[mode, smart_transcript, edit_word_mode, transcript, edit_from_word, edit_to_word],
-                    outputs=[transcript, edit_from_word, edit_to_word])
-        edit_word_mode.change(fn=update_demo,
-                            inputs=[mode, smart_transcript, edit_word_mode, transcript, edit_from_word, edit_to_word],
-                            outputs=[transcript, edit_from_word, edit_to_word])
-        smart_transcript.change(fn=update_demo,
-                                inputs=[mode, smart_transcript, edit_word_mode, transcript, edit_from_word, edit_to_word],
-                                outputs=[transcript, edit_from_word, edit_to_word])
+        # mode.change(fn=update_demo,
+        #             inputs=[mode, smart_transcript, edit_word_mode, transcript, edit_from_word, edit_to_word],
+        #             outputs=[transcript, edit_from_word, edit_to_word])
+        # edit_word_mode.change(fn=update_demo,
+        #                     inputs=[mode, smart_transcript, edit_word_mode, transcript, edit_from_word, edit_to_word],
+        #                     outputs=[transcript, edit_from_word, edit_to_word])
+        # smart_transcript.change(fn=update_demo,
+        #                         inputs=[mode, smart_transcript, edit_word_mode, transcript, edit_from_word, edit_to_word],
+        #                         outputs=[transcript, edit_from_word, edit_to_word])
 
         load_models_btn.click(fn=load_models,
                             inputs=[whisper_backend_choice, whisper_model_choice, align_model_choice, ssrspeech_model_choice],
                             outputs=[models_selector])
 
-        input_audio.upload(fn=update_input_audio,
-                        inputs=[input_audio],
-                        outputs=[prompt_end_time, edit_start_time, edit_end_time])
+        # input_audio.upload(fn=update_input_audio,
+        #                 inputs=[input_audio],
+        #                 outputs=[prompt_end_time, edit_start_time, edit_end_time])
+        # transcribe_btn.click(fn=transcribe,
+        #                     inputs=[seed, input_audio],
+        #                     outputs=[original_transcript, transcript_with_start_time, transcript_with_end_time,
+        #                             prompt_to_word, edit_from_word, edit_to_word, transcribe_state])
         transcribe_btn.click(fn=transcribe,
                             inputs=[seed, input_audio],
-                            outputs=[original_transcript, transcript_with_start_time, transcript_with_end_time,
-                                    prompt_to_word, edit_from_word, edit_to_word, transcribe_state])
+                            outputs=[original_transcript, transcript_with_start_time, transcript_with_end_time, transcribe_state])
+        # align_btn.click(fn=align,
+        #                 inputs=[seed, original_transcript, input_audio],
+        #                 outputs=[transcript_with_start_time, transcript_with_end_time,
+        #                         prompt_to_word, edit_from_word, edit_to_word, transcribe_state])
         align_btn.click(fn=align,
                         inputs=[seed, original_transcript, input_audio],
-                        outputs=[transcript_with_start_time, transcript_with_end_time,
-                                prompt_to_word, edit_from_word, edit_to_word, transcribe_state])
-
-        mode.change(fn=change_mode,
-                    inputs=[mode],
-                    outputs=[tts_mode_controls, edit_mode_controls, edit_word_mode, split_text, long_tts_sentence_editor])
+                        outputs=[transcript_with_start_time, transcript_with_end_time, transcribe_state])
 
         run_btn.click(fn=run,
                     inputs=[
-                        seed, left_margin, right_margin,
+                        seed, sub_amount, ssrspeech_model_choice,
                         codec_audio_sr, codec_sr,
                         top_k, top_p, temperature,
-                        stop_repetition, sample_batch_size,
-                        kvcache, silence_tokens,
-                        input_audio, transcribe_state, transcript, smart_transcript,
-                        mode, prompt_end_time, edit_start_time, edit_end_time,
-                        split_text, sentence_selector, audio_tensors
+                        stop_repetition,
+                        kvcache, silence_tokens, aug_text, cfg_coef,
+                        input_audio, transcribe_state, original_transcript, transcript,
+                        mode, sentence_selector, audio_tensors
                     ],
                     outputs=[output_audio, inference_transcript, sentence_selector, audio_tensors])
 
@@ -577,29 +627,16 @@ def get_app():
                                 outputs=[sentence_audio])
         rerun_btn.click(fn=run,
                         inputs=[
-                            seed, left_margin, right_margin,
+                            seed, sub_amount, ssrspeech_model_choice,
                             codec_audio_sr, codec_sr,
                             top_k, top_p, temperature,
-                            stop_repetition, sample_batch_size,
-                            kvcache, silence_tokens,
-                            input_audio, transcribe_state, transcript, smart_transcript,
-                            gr.State(value="Rerun"), prompt_end_time, edit_start_time, edit_end_time,
-                            split_text, sentence_selector, audio_tensors
+                            stop_repetition,
+                            kvcache, silence_tokens, aug_text, cfg_coef, 
+                            input_audio, transcribe_state, original_transcript, transcript,
+                            gr.State(value="Rerun"), sentence_selector, audio_tensors
                         ],
                         outputs=[output_audio, inference_transcript, sentence_audio, audio_tensors])
 
-        prompt_to_word.change(fn=update_bound_word,
-                            inputs=[gr.State(False), prompt_to_word, gr.State("Replace all")],
-                            outputs=[prompt_end_time])
-        edit_from_word.change(fn=update_bound_word,
-                            inputs=[gr.State(True), edit_from_word, edit_word_mode],
-                            outputs=[edit_start_time])
-        edit_to_word.change(fn=update_bound_word,
-                            inputs=[gr.State(False), edit_to_word, edit_word_mode],
-                            outputs=[edit_end_time])
-        edit_word_mode.change(fn=update_bound_words,
-                            inputs=[edit_from_word, edit_to_word, edit_word_mode],
-                            outputs=[edit_start_time, edit_end_time])
     return app
 
 
