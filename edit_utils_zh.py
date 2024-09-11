@@ -100,7 +100,7 @@ def combine_nearby_spans(spans):
             combined_spans.append(current_span)
     return combined_spans
 
-def parse_edit(orig_transcript, trgt_transcript):
+def parse_edit_zh(orig_transcript, trgt_transcript):
     word1 = extract_words(orig_transcript)
     word2 = extract_words(trgt_transcript)
     distance, operations, positions = levenshtein_distance(orig_transcript, trgt_transcript)
@@ -108,7 +108,7 @@ def parse_edit(orig_transcript, trgt_transcript):
     spans = combine_nearby_spans(spans)
     return operations, spans
 
-def parse_tts(orig_transcript, trgt_transcript):
+def parse_tts_zh(orig_transcript, trgt_transcript):
     word1 = extract_words(orig_transcript)
     word2 = extract_words(trgt_transcript)
     distance, operations, positions = levenshtein_distance(orig_transcript, trgt_transcript)
