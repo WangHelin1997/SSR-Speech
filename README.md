@@ -1,6 +1,6 @@
 <p align="center">
   <picture>
-    <img alt="Hugging Face Transformers Library" src="https://github.com/WangHelin1997/SSR-Speech/blob/main/demo/ssrspeech.jpg" width="250" height="250" style="max-width: 100%;">
+    <img alt="Hugging Face Transformers Library" src="https://huggingface.co/westbrook/SSR-Speech-English/blob/main/ssrspeech.jpg" width="250" height="250" style="max-width: 100%;">
   </picture>
   <br/>
   <br/>
