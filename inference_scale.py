@@ -86,7 +86,7 @@ def inference_one_sample(model, model_args, phn2num, text_tokenizer, audio_token
         
     if tts:
         wav, sr = torchaudio.load(audio_fn)
-        generated_sample = generated_sample[:,:, (masks[0][1]-1)*320:]
+        generated_sample = generated_sample[:,:, masks[0][1]*320:]
             
     return generated_sample
 
