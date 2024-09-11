@@ -299,3 +299,13 @@ dora run -d solver='compression/encodec_audiogen_16khz' dset='internal/sounds_16
 ## Acknowledgement
 We thank Puyuan for his [VoiceCraft](https://github.com/jasonppy/VoiceCraft).
 
+
+## Citation
+```
+@article{wang2024ssrspeech,
+  author    = {Wang, Helin and Yu, Meng and Hai, Jiarui and Chen, Chen and Hu, Yuchen and Chen, Rilin and Dehak, Najim and Yu, Dong},
+  title     = {SSR-Speech: Towards Stable, Safe and Robust Zero-shot Text-based Speech Editing and Synthesis},
+  journal   = {arXiv},
+  year      = {2024},
+}
+```
