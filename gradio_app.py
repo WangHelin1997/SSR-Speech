@@ -45,8 +45,14 @@ def seed_everything(seed):
         torch.backends.cudnn.deterministic = True
 
 def get_mask_interval(transcribe_state, word_span):
-    words = transcribe_state['words']
-    data = [[item['start'], item['end'], item['word']] for item in words]
+    print(transcribe_state)
+    seg_num = len(transcribe_state['segments'])
+    data = []
+    for i in range(seg_num):
+      words = transcribe_state['segments'][i]['words']
+      for item in words:
+        data.append([item['start'], item['end'], item['word']])
+
     s, e = word_span[0], word_span[1]
     assert s <= e, f"s:{s}, e:{e}"
     assert s >= 0, f"s:{s}"
@@ -174,10 +180,11 @@ def transcribe(seed, audio_path):
 
     segments = transcribe_model.transcribe(audio_path)
     state = get_transcribe_state(segments)
+    success_message = "<span style='color:green;'>Success: Transcribe completed successfully!</span>"
 
     return [
         state["transcript"], state["transcript_with_start_time"], state["transcript_with_end_time"],
-        state
+        state, success_message
     ]
 
 
@@ -216,10 +223,11 @@ def align(seed, transcript, audio_path):
     } for fragment in fragments["fragments"]]
     segments = align_model.align(segments, audio_path)
     state = get_transcribe_state(segments)
+    success_message = "<span style='color:green;'>Success: Alignment completed successfully!</span>"
 
     return [
         state["transcript_with_start_time"], state["transcript_with_end_time"],
-        state
+        state, success_message
     ]
 
 
@@ -262,8 +270,6 @@ def run(seed, sub_amount, ssrspeech_model_choice, codec_audio_sr, codec_sr, top_
         sentences = [selected_sentence[colon_position + 1:]]
     else:
         sentences = [transcript.replace("\n", " ")]
-
-
 
     audio_tensors = []
     inference_transcript = ""
@@ -371,58 +377,12 @@ def run(seed, sub_amount, ssrspeech_model_choice, codec_audio_sr, codec_sr, top_
         return output_audio, inference_transcript, sentence_audio, previous_audio_tensors
 
 
-def update_input_audio(audio_path):
-    if audio_path is None:
-        return 0, 0, 0
-
-    info = torchaudio.info(audio_path)
-    max_time = round(info.num_frames / info.sample_rate, 2)
-    return [
-        gr.Slider(maximum=max_time, value=max_time),
-        gr.Slider(maximum=max_time, value=0),
-        gr.Slider(maximum=max_time, value=max_time),
-    ]
-
-
-def change_mode(mode):
-    # tts_mode_controls, edit_mode_controls, edit_word_mode, split_text, long_tts_sentence_editor
-    return [
-        gr.Group(visible=mode != "Edit"),
-        gr.Group(visible=mode == "Edit"),
-        gr.Radio(visible=mode == "Edit"),
-    ]
-
-
 def load_sentence(selected_sentence, codec_audio_sr, audio_tensors):
     if selected_sentence is None:
         return None
     colon_position = selected_sentence.find(':')
     selected_sentence_idx = int(selected_sentence[:colon_position])
     return get_output_audio([audio_tensors[selected_sentence_idx]], codec_audio_sr)
-
-
-def update_bound_word(is_first_word, selected_word, edit_word_mode):
-    if selected_word is None:
-        return None
-
-    word_start_time = float(selected_word.split(' ')[0])
-    word_end_time = float(selected_word.split(' ')[-1])
-    if edit_word_mode == "Replace half":
-        bound_time = (word_start_time + word_end_time) / 2
-    elif is_first_word:
-        bound_time = word_start_time
-    else:
-        bound_time = word_end_time
-
-    return bound_time
-
-
-def update_bound_words(from_selected_word, to_selected_word, edit_word_mode):
-    return [
-        update_bound_word(True, from_selected_word, edit_word_mode),
-        update_bound_word(False, to_selected_word, edit_word_mode),
-    ]
-
 
 smart_transcript_info = """
 If enabled, the target transcript will be constructed for you:</br>
@@ -510,36 +470,9 @@ def get_app():
             with gr.Column(scale=3):
                 with gr.Group():
                     transcript = gr.Textbox(label="Text", lines=7, value=demo_text["TTS"]["smart"])
-                    # with gr.Row():
-                    #     smart_transcript = gr.Checkbox(label="Smart transcript", value=True)
-                    #     with gr.Accordion(label="?", open=False):
-                    #         info = gr.Markdown(value=smart_transcript_info)
 
                     with gr.Row():
                         mode = gr.Radio(label="Mode", choices=["Edit", "TTS"], value="Edit")
-                        # split_text = gr.Radio(label="Split text", choices=["Newline", "Sentence"], value="Newline",
-                        #                     info="Split text into parts and run TTS for each part.", visible=False)
-                        # edit_word_mode = gr.Radio(label="Edit word mode", choices=["Replace half", "Replace all"], value="Replace all",
-                        #                         info="What to do with first and last word", visible=False)
-
-                    # with gr.Row():
-                    #     mode = gr.Radio(label="Mode", choices=["TTS", "Edit", "Long TTS"], value="TTS")
-                    #     split_text = gr.Radio(label="Split text", choices=["Newline", "Sentence"], value="Newline",
-                    #                         info="Split text into parts and run TTS for each part.", visible=False)
-                    #     edit_word_mode = gr.Radio(label="Edit word mode", choices=["Replace half", "Replace all"], value="Replace all",
-                    #                             info="What to do with first and last word", visible=False)
-
-                    # with gr.Group() as tts_mode_controls:
-                    #     prompt_to_word = gr.Dropdown(label="Last word in prompt", choices=demo_words, value=demo_words[11], interactive=True)
-                    #     prompt_end_time = gr.Slider(label="Prompt end time", minimum=0, maximum=7.614, step=0.001, value=3.600)
-
-                    # with gr.Group(visible=False) as edit_mode_controls:
-                    #     with gr.Row():
-                    #         edit_from_word = gr.Dropdown(label="First word to edit", choices=demo_words, value=demo_words[12], interactive=True)
-                    #         edit_to_word = gr.Dropdown(label="Last word to edit", choices=demo_words, value=demo_words[18], interactive=True)
-                    #     with gr.Row():
-                    #         edit_start_time = gr.Slider(label="Edit from time", minimum=0, maximum=7.614, step=0.001, value=4.022)
-                    #         edit_end_time = gr.Slider(label="Edit to time", minimum=0, maximum=7.614, step=0.001, value=5.768)
 
                     run_btn = gr.Button(value="Run")
 
@@ -573,42 +506,21 @@ def get_app():
                 codec_sr = gr.Number(label="codec_sr", value=50, info='encodec specific, Do not change')
                 silence_tokens = gr.Textbox(label="silence tokens", value="[1388,1898,131]", info="encodec specific, do not change")
 
-
+        success_output = gr.HTML()
         audio_tensors = gr.State()
         transcribe_state = gr.State(value={"words_info": demo_words_info})
-
-
-        # mode.change(fn=update_demo,
-        #             inputs=[mode, smart_transcript, edit_word_mode, transcript, edit_from_word, edit_to_word],
-        #             outputs=[transcript, edit_from_word, edit_to_word])
-        # edit_word_mode.change(fn=update_demo,
-        #                     inputs=[mode, smart_transcript, edit_word_mode, transcript, edit_from_word, edit_to_word],
-        #                     outputs=[transcript, edit_from_word, edit_to_word])
-        # smart_transcript.change(fn=update_demo,
-        #                         inputs=[mode, smart_transcript, edit_word_mode, transcript, edit_from_word, edit_to_word],
-        #                         outputs=[transcript, edit_from_word, edit_to_word])
 
         load_models_btn.click(fn=load_models,
                             inputs=[whisper_backend_choice, whisper_model_choice, align_model_choice, ssrspeech_model_choice],
                             outputs=[models_selector])
 
-        # input_audio.upload(fn=update_input_audio,
-        #                 inputs=[input_audio],
-        #                 outputs=[prompt_end_time, edit_start_time, edit_end_time])
-        # transcribe_btn.click(fn=transcribe,
-        #                     inputs=[seed, input_audio],
-        #                     outputs=[original_transcript, transcript_with_start_time, transcript_with_end_time,
-        #                             prompt_to_word, edit_from_word, edit_to_word, transcribe_state])
+
         transcribe_btn.click(fn=transcribe,
                             inputs=[seed, input_audio],
-                            outputs=[original_transcript, transcript_with_start_time, transcript_with_end_time, transcribe_state])
-        # align_btn.click(fn=align,
-        #                 inputs=[seed, original_transcript, input_audio],
-        #                 outputs=[transcript_with_start_time, transcript_with_end_time,
-        #                         prompt_to_word, edit_from_word, edit_to_word, transcribe_state])
+                            outputs=[original_transcript, transcript_with_start_time, transcript_with_end_time, transcribe_state, success_output])
         align_btn.click(fn=align,
                         inputs=[seed, original_transcript, input_audio],
-                        outputs=[transcript_with_start_time, transcript_with_end_time, transcribe_state])
+                        outputs=[transcript_with_start_time, transcript_with_end_time, transcribe_state, success_output])
 
         run_btn.click(fn=run,
                     inputs=[
