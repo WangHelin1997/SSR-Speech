@@ -74,7 +74,7 @@ apt-get install -y libxml2-dev libxslt-dev zlib1g-dev
 pip install -r gradio_requirements.txt
 ```
 
-Run gradio server from terminal or [`gradio_app.ipynb`](./gradio_app.ipynb):
+Run gradio server from terminal:
 ```bash
 python gradio_app.py
 ```
