@@ -16,6 +16,7 @@ Official Pytorch implementation of the paper: SSR-Speech: Towards Stable, Safe a
 - [x] Release English model weights
 - [ ] Release Mandarin model weights
 - [ ] HuggingFace Spaces demo
+- [ ] arxiv paper
 
 
 ## Environment setup
