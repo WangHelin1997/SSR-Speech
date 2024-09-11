@@ -3,6 +3,12 @@
 
 Official Pytorch implementation of the paper: SSR-Speech: Towards Stable, Safe and Robust Zero-shot Speech Editing and Synthesis.
 
+## TODO
+- [x] Release English model weights
+- [ ] Release Mandarin model weights
+- [ ] HuggingFace Spaces demo
+
+
 ## Environment setup
 ```bash
 conda create -n ssr python=3.9.16
@@ -21,6 +27,7 @@ pip install datasets==2.16.0
 pip install torchmetrics==0.11.1
 pip install huggingface_hub==0.22.2
 
+# only use for inference
 conda install -c conda-forge montreal-forced-aligner=2.2.17 openfst=1.8.2 kaldi=5.5.1068
 mfa model download dictionary english_us_arpa
 mfa model download acoustic english_us_arpa
@@ -30,8 +37,8 @@ mfa model download acoustic mandarin_mfa
 
 ## Pretrained Models
 
-Download our pretrained models from [huggingface](https://huggingface.co/westbrook/voicecraft).
-We provide MFA models, an Encodec model and pretrained Chinese and English models.
+Download our pretrained English models from [huggingface](https://huggingface.co/westbrook/SSR-Speech-English).
+We provide MFA models, an Watemark Encodec model and a pretrained English model on GigaSpeech XL set.
 
 After downloading the files, put them under this repo, like:
 ```
@@ -41,6 +48,35 @@ SSR-Speech/
     -pretrained_models/
     ....
 ```
+
+## Gradio
+### Run in colab
+
+[![Open in Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1IOjpglQyMTO2C3Y94LD9FY0Ocn-RJRg6?usp=sharing)
+
+### Run locally
+After environment setup install additional dependencies:
+```bash
+apt-get install -y espeak espeak-data libespeak1 libespeak-dev
+apt-get install -y festival*
+apt-get install -y build-essential
+apt-get install -y flac libasound2-dev libsndfile1-dev vorbis-tools
+apt-get install -y libxml2-dev libxslt-dev zlib1g-dev
+pip install -r gradio_requirements.txt
+```
+
+Run gradio server from terminal or [`gradio_app.ipynb`](./gradio_app.ipynb):
+```bash
+python gradio_app.py
+```
+It is ready to use on [default url](http://127.0.0.1:7860).
+
+### How to use it
+1. (optionally) Select models
+2. Load models
+3. Transcribe
+4. Align
+5. Run
 
 
 ## Training
