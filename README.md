@@ -3,7 +3,7 @@
 
 Official Pytorch implementation of the paper: SSR-Speech: Towards Stable, Safe and Robust Zero-shot Speech Editing and Synthesis.
 
-Work done during an internship at Tencent AI Lab
+:star: Work done during an internship at Tencent AI Lab
 
 ## TODO
 - [x] Release English model weights
