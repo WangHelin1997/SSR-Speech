@@ -1,7 +1,6 @@
 <p align="center">
   <picture>
-    <source type="image/webp" srcset="https://github.com/WangHelin1997/SSR-Speech/blob/main/demo/ssrspeech.webp">
-    <img src="demo/ssrspeech.webp" alt="SSR-Speech" width="300" height="300" style="max-width: 100%;">
+    <img src="demo/ssrspeech.webp" alt="SSR-Speech">
   </picture>
   <br/>
   <br/>
