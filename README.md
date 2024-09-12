@@ -1,6 +1,6 @@
 <p align="center">
   <picture>
-    <img src="demo/ssrspeech.webp" alt="SSR-Speech">
+    <img src="demo/ssrspeech.webp">
   </picture>
   <br/>
   <br/>
