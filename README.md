@@ -293,6 +293,10 @@ python makefile.py
 dora run -d solver='compression/encodec_audiogen_16khz' dset='internal/sounds_16khz'
 ```
 
+## License
+The codebase is under CC BY-NC-SA 4.0 ([LICENSE-CODE](./LICENSE-CODE)), and the model weights are under Coqui Public Model License 1.0.0 ([LICENSE-MODEL](./LICENSE-MODEL)). Note that we use some of the code from other repository that are under different licenses: `./models/modules`, `./steps/optim.py`, `data/tokenizer.py` are under Apache License, Version 2.0; the phonemizer we used is under GNU 3.0 License.
+
+
 
 ## Acknowledgement
 We thank Puyuan for his [VoiceCraft](https://github.com/jasonppy/VoiceCraft).
