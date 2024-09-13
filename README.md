@@ -14,6 +14,7 @@ Official Pytorch implementation of the paper: SSR-Speech: Towards Stable, Safe a
 - [ ] Release Mandarin model weights
 - [ ] HuggingFace Spaces demo
 - [x] arxiv paper
+- [ ] WhisperX forced alignment
 
 
 ## Environment setup
