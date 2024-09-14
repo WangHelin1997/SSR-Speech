@@ -23,8 +23,7 @@ Official Pytorch implementation of the paper: SSR-Speech: Towards Stable, Safe a
 conda create -n ssr python=3.9.16
 conda activate ssr
 
-cd ./audiocraft
-pip install .
+pip install git+https://github.com/WangHelin1997/SSR-Speech.git#subdirectory=audiocraft
 
 pip install xformers==0.0.22
 pip install torchaudio torch
