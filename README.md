@@ -15,6 +15,7 @@ Official Pytorch implementation of the paper: SSR-Speech: Towards Stable, Safe a
 - [ ] HuggingFace Spaces demo
 - [x] arxiv paper
 - [ ] WhisperX forced alignment
+- [ ] ASR for automatically transcipt the prompt for TTS
 
 
 ## Environment setup
