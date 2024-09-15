@@ -20,7 +20,6 @@ from edit_utils_zh import parse_edit_zh
 from edit_utils_en import parse_edit_en
 from edit_utils_zh import parse_tts_zh
 from edit_utils_en import parse_tts_en
-from inference_scale import get_mask_interval
 from inference_scale import inference_one_sample
 import time
 from tqdm import tqdm
@@ -66,7 +65,7 @@ class WhisperxAlignModel:
 class WhisperModel:
     def __init__(self, model_name, language):
         from whisper import load_model
-        self.model = load_model(model_name, device)
+        self.model = load_model(model_name, device, language=language)
 
         from whisper.tokenizer import get_tokenizer
         tokenizer = get_tokenizer(multilingual=False, language=language)
@@ -81,9 +80,9 @@ class WhisperModel:
 
 
 class WhisperxModel:
-    def __init__(self, model_name, align_model: WhisperxAlignModel):
+    def __init__(self, model_name, align_model, language):
         from whisperx import load_model
-        self.model = load_model(model_name, device, asr_options={"suppress_numerals": True, "max_new_tokens": None, "clip_timestamps": None, "hallucination_silence_threshold": None})
+        self.model = load_model(model_name, device, asr_options={"suppress_numerals": True, "max_new_tokens": None, "clip_timestamps": None, "hallucination_silence_threshold": None},language=language)
         self.align_model = align_model
 
     def transcribe(self, audio_path):
@@ -92,6 +91,86 @@ class WhisperxModel:
             segment['text'] = replace_numbers_with_words(segment['text'])
         return self.align_model.align(segments, audio_path)
 
+
+def get_transcribe_state(segments):
+    words_info = [word_info for segment in segments for word_info in segment["words"]]
+    transcript = " ".join([segment["text"] for segment in segments])
+    transcript = transcript[1:] if transcript[0] == " " else transcript
+    return {
+        "segments": segments,
+        "transcript": transcript,
+        "words_info": words_info,
+        "transcript_with_start_time": " ".join([f"{word['start']} {word['word']}" for word in words_info]),
+        "transcript_with_end_time": " ".join([f"{word['word']} {word['end']}" for word in words_info]),
+        "word_bounds": [f"{word['start']} {word['word']} {word['end']}" for word in words_info]
+    }
+
+def transcribe(audio_path, transcribe_model):
+    segments = transcribe_model.transcribe(audio_path)
+    state = get_transcribe_state(segments)
+    return state["transcript"], state
+
+def align_segments(transcript, audio_path):
+    from aeneas.executetask import ExecuteTask
+    from aeneas.task import Task
+    import json
+    config_string = 'task_language=eng|os_task_file_format=json|is_text_type=plain'
+
+    tmp_transcript_path = os.path.join(TMP_PATH, f"{get_random_string()}.txt")
+    tmp_sync_map_path = os.path.join(TMP_PATH, f"{get_random_string()}.json")
+    with open(tmp_transcript_path, "w") as f:
+        f.write(transcript)
+
+    task = Task(config_string=config_string)
+    task.audio_file_path_absolute = os.path.abspath(audio_path)
+    task.text_file_path_absolute = os.path.abspath(tmp_transcript_path)
+    task.sync_map_file_path_absolute = os.path.abspath(tmp_sync_map_path)
+    ExecuteTask(task).execute()
+    task.output_sync_map_file()
+
+    with open(tmp_sync_map_path, "r") as f:
+        return json.load(f)
+    
+def align(transcript, audio_path, align_model):
+    transcript = replace_numbers_with_words(transcript).replace("  ", " ").replace("  ", " ")
+    fragments = align_segments(transcript, audio_path)
+    segments = [{
+        "start": float(fragment["begin"]),
+        "end": float(fragment["end"]),
+        "text": " ".join(fragment["lines"])
+    } for fragment in fragments["fragments"]]
+    segments = align_model.align(segments, audio_path)
+    state = get_transcribe_state(segments)
+
+    return state
+
+def get_mask_interval(transcribe_state, word_span):
+    # print(transcribe_state)
+    seg_num = len(transcribe_state['segments'])
+    data = []
+    for i in range(seg_num):
+      words = transcribe_state['segments'][i]['words']
+      for item in words:
+        data.append([item['start'], item['end'], item['word']])
+
+    s, e = word_span[0], word_span[1]
+    assert s <= e, f"s:{s}, e:{e}"
+    assert s >= 0, f"s:{s}"
+    assert e <= len(data), f"e:{e}"
+    if e == 0: # start
+        start = 0.
+        end = float(data[0][0])
+    elif s == len(data): # end
+        start = float(data[-1][1])
+        end = float(data[-1][1]) # don't know the end yet
+    elif s == e: # insert
+        start = float(data[s-1][1])
+        end = float(data[s][0])
+    else:
+        start = float(data[s-1][1]) if s > 0 else float(data[s][0])
+        end = float(data[e][0]) if e < len(data) else float(data[-1][1])
+
+    return (start, end)
 
 def parse_args():
     parser = argparse.ArgumentParser(description="inference speech editing")
@@ -123,7 +202,7 @@ def parse_args():
     parser.add_argument('--use_downloaded_mfa', action='store_true')
     parser.add_argument('--mfa_dict_path', type=str, default=None)
     parser.add_argument('--mfa_path', type=str, default=None)
-    parser.add_argument('--whisper_model_name', type=str, default=None)
+    parser.add_argument('--whisper_model_name', type=str, choices=["base.en", "small.en", "medium.en", "large"], default="base.en")
     
     return parser.parse_args()
 
@@ -135,7 +214,7 @@ def main(args):
         
     # Initialize models
     align_model = WhisperxAlignModel(args.language)
-    transcribe_model = WhisperxModel(args.whisper_model_name, align_model)
+    transcribe_model = WhisperxModel(args.whisper_model_name, align_model, args.language)
 
     filepath = os.path.join(args.model_path)
     ckpt = torch.load(filepath, map_location="cpu")
