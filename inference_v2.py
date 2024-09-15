@@ -27,6 +27,9 @@ import argparse
 from models import ssr
 import re
 from num2words import num2words
+import uuid
+import nltk
+nltk.download('punkt')
 
 def seed_everything(seed):
     os.environ['PYTHONHASHSEED'] = str(seed)
@@ -108,16 +111,20 @@ def get_transcribe_state(segments):
 def transcribe(audio_path, transcribe_model):
     segments = transcribe_model.transcribe(audio_path)
     state = get_transcribe_state(segments)
-    return state["transcript"], state
+    print(state["transcript"])
+    return state["transcript"]
 
-def align_segments(transcript, audio_path):
+def get_random_string():
+    return "".join(str(uuid.uuid4()).split("-"))
+
+def align_segments(args, transcript, audio_path):
     from aeneas.executetask import ExecuteTask
     from aeneas.task import Task
     import json
     config_string = 'task_language=eng|os_task_file_format=json|is_text_type=plain'
 
-    tmp_transcript_path = os.path.join(TMP_PATH, f"{get_random_string()}.txt")
-    tmp_sync_map_path = os.path.join(TMP_PATH, f"{get_random_string()}.json")
+    tmp_transcript_path = os.path.join(args.temp_folder, f"{get_random_string()}.txt")
+    tmp_sync_map_path = os.path.join(args.temp_folder, f"{get_random_string()}.json")
     with open(tmp_transcript_path, "w") as f:
         f.write(transcript)
 
@@ -198,10 +205,6 @@ def parse_args():
     parser.add_argument('--temp_folder', type=str, default=None)
     parser.add_argument('--output_dir', type=str, default=None)
     parser.add_argument('--savename', type=str, default=None)
-    parser.add_argument('--mfa', action='store_true')
-    parser.add_argument('--use_downloaded_mfa', action='store_true')
-    parser.add_argument('--mfa_dict_path', type=str, default=None)
-    parser.add_argument('--mfa_path', type=str, default=None)
     parser.add_argument('--whisper_model_name', type=str, choices=["base.en", "small.en", "medium.en", "large"], default="base.en")
     
     return parser.parse_args()
@@ -233,11 +236,11 @@ def main(args):
     os.makedirs(args.output_dir, exist_ok=True)
     os.system(f"cp {args.orig_audio} {args.temp_folder}")
     filename = os.path.splitext(args.orig_audio.split("/")[-1])[0]
-    with open(f"{args.temp_folder}/{filename}.txt", "w") as f:
-        if args.language == 'zh':
-            f.write(' '.join(args.orig_transcript))
-        else:
-            f.write(args.orig_transcript)
+    # with open(f"{args.temp_folder}/{filename}.txt", "w") as f:
+    #     if args.language == 'zh':
+    #         f.write(' '.join(args.orig_transcript))
+    #     else:
+    #         f.write(args.orig_transcript)
 
     # resampling audio to 16k Hz
     import librosa
@@ -245,100 +248,89 @@ def main(args):
     audio, sr = librosa.load(os.path.join(args.temp_folder, filename+'.wav'), sr=16000)
     sf.write(os.path.join(args.temp_folder, filename+'.wav'), audio, 16000)
         
-    # run MFA to get the alignment
-    align_temp = f"{args.temp_folder}/mfa_alignments"
-    os.makedirs(align_temp, exist_ok=True)
-    if args.mfa:
-        if args.use_downloaded_mfa:
-            os.system(f"mfa align --overwrite -j 1 --output_format csv {args.temp_folder} {args.mfa_dict_path} {args.mfa_path} {align_temp} --clean")
-        else:
-            if args.language == 'zh':
-                os.system(f"mfa align --overwrite -j 1 --output_format csv {args.temp_folder} mandarin_china_mfa mandarin_mfa {align_temp} --clean")
-            elif args.language == 'en':
-                os.system(f"mfa align --overwrite -j 1 --output_format csv {args.temp_folder} english_us_arpa english_us_arpa {align_temp} --clean")
-
     audio_fn = f"{args.temp_folder}/{filename}.wav"
-    transcript_fn = f"{args.temp_folder}/{filename}.txt"
-    align_fn = f"{align_temp}/{filename}.csv"
+    transcript = transcribe(audio_fn, transcribe_model)
+    align_state = align(transcript, audio_fn, align_model)
+    print(align_state)
 
     # run the script to turn user input to the format that the model can take
-    if not args.tts:
-        operations, orig_spans = parse_edit_en(args.orig_transcript, args.target_transcript) if args.language == 'en' else parse_edit_zh(args.orig_transcript, args.target_transcript)
-        print(operations)
-        print("orig_spans: ", orig_spans)
+    # if not args.tts:
+    #     operations, orig_spans = parse_edit_en(args.orig_transcript, args.target_transcript) if args.language == 'en' else parse_edit_zh(args.orig_transcript, args.target_transcript)
+    #     print(operations)
+    #     print("orig_spans: ", orig_spans)
         
-        if len(orig_spans) > 3:
-            raise RuntimeError("Current model only supports maximum 3 editings")
+    #     if len(orig_spans) > 3:
+    #         raise RuntimeError("Current model only supports maximum 3 editings")
             
-        starting_intervals = []
-        ending_intervals = []
-        for orig_span in orig_spans:
-            start, end = get_mask_interval(align_fn, orig_span)
-            starting_intervals.append(start)
-            ending_intervals.append(end)
+    #     starting_intervals = []
+    #     ending_intervals = []
+    #     for orig_span in orig_spans:
+    #         start, end = get_mask_interval(align_fn, orig_span)
+    #         starting_intervals.append(start)
+    #         ending_intervals.append(end)
     
-        print("intervals: ", starting_intervals, ending_intervals)
+    #     print("intervals: ", starting_intervals, ending_intervals)
     
-        info = torchaudio.info(audio_fn)
-        audio_dur = info.num_frames / info.sample_rate
+    #     info = torchaudio.info(audio_fn)
+    #     audio_dur = info.num_frames / info.sample_rate
         
-        def combine_spans(spans, threshold=0.2):
-            spans.sort(key=lambda x: x[0])
-            combined_spans = []
-            current_span = spans[0]
+    #     def combine_spans(spans, threshold=0.2):
+    #         spans.sort(key=lambda x: x[0])
+    #         combined_spans = []
+    #         current_span = spans[0]
     
-            for i in range(1, len(spans)):
-                next_span = spans[i]
-                if current_span[1] >= next_span[0] - threshold:
-                    current_span[1] = max(current_span[1], next_span[1])
-                else:
-                    combined_spans.append(current_span)
-                    current_span = next_span
-            combined_spans.append(current_span)
-            return combined_spans
+    #         for i in range(1, len(spans)):
+    #             next_span = spans[i]
+    #             if current_span[1] >= next_span[0] - threshold:
+    #                 current_span[1] = max(current_span[1], next_span[1])
+    #             else:
+    #                 combined_spans.append(current_span)
+    #                 current_span = next_span
+    #         combined_spans.append(current_span)
+    #         return combined_spans
         
-        morphed_span = [[max(start - args.sub_amount, 0), min(end + args.sub_amount, audio_dur)]
-                        for start, end in zip(starting_intervals, ending_intervals)] # in seconds
-        morphed_span = combine_spans(morphed_span, threshold=0.2)
-        print("morphed_spans: ", morphed_span)
-        save_morphed_span = f"{args.output_dir}/{args.savename}_mask.pt"
-        torch.save(morphed_span, save_morphed_span)
-        mask_interval = [[round(span[0]*args.codec_sr), round(span[1]*args.codec_sr)] for span in morphed_span]
-        mask_interval = torch.LongTensor(mask_interval) # [M,2], M==1 for now
-    else:
-        orig_spans = parse_tts_en(args.orig_transcript, args.target_transcript) if args.language == 'en' else parse_tts_zh(args.orig_transcript, args.target_transcript)
-        print("orig_spans: ", orig_spans)
+    #     morphed_span = [[max(start - args.sub_amount, 0), min(end + args.sub_amount, audio_dur)]
+    #                     for start, end in zip(starting_intervals, ending_intervals)] # in seconds
+    #     morphed_span = combine_spans(morphed_span, threshold=0.2)
+    #     print("morphed_spans: ", morphed_span)
+    #     save_morphed_span = f"{args.output_dir}/{args.savename}_mask.pt"
+    #     torch.save(morphed_span, save_morphed_span)
+    #     mask_interval = [[round(span[0]*args.codec_sr), round(span[1]*args.codec_sr)] for span in morphed_span]
+    #     mask_interval = torch.LongTensor(mask_interval) # [M,2], M==1 for now
+    # else:
+    #     orig_spans = parse_tts_en(args.orig_transcript, args.target_transcript) if args.language == 'en' else parse_tts_zh(args.orig_transcript, args.target_transcript)
+    #     print("orig_spans: ", orig_spans)
             
-        starting_intervals = []
-        ending_intervals = []
-        for orig_span in orig_spans:
-            start, end = get_mask_interval(align_fn, orig_span)
-            starting_intervals.append(start)
-            ending_intervals.append(end)
+    #     starting_intervals = []
+    #     ending_intervals = []
+    #     for orig_span in orig_spans:
+    #         start, end = get_mask_interval(align_fn, orig_span)
+    #         starting_intervals.append(start)
+    #         ending_intervals.append(end)
     
-        print("intervals: ", starting_intervals, ending_intervals)
+    #     print("intervals: ", starting_intervals, ending_intervals)
     
-        info = torchaudio.info(audio_fn)
-        audio_dur = info.num_frames / info.sample_rate
+    #     info = torchaudio.info(audio_fn)
+    #     audio_dur = info.num_frames / info.sample_rate
         
-        morphed_span = [(max(start, 1/args.codec_sr), min(end, audio_dur))
-                        for start, end in zip(starting_intervals, ending_intervals)] # in seconds
-        mask_interval = [[round(span[0]*args.codec_sr), round(span[1]*args.codec_sr)] for span in morphed_span]
-        mask_interval = torch.LongTensor(mask_interval) # [M,2], M==1 for now
-        print("mask_interval: ", mask_interval)
+    #     morphed_span = [(max(start, 1/args.codec_sr), min(end, audio_dur))
+    #                     for start, end in zip(starting_intervals, ending_intervals)] # in seconds
+    #     mask_interval = [[round(span[0]*args.codec_sr), round(span[1]*args.codec_sr)] for span in morphed_span]
+    #     mask_interval = torch.LongTensor(mask_interval) # [M,2], M==1 for now
+    #     print("mask_interval: ", mask_interval)
 
-    decode_config = {'top_k': args.top_k, 'top_p': args.top_p, 'temperature': args.temperature, 'stop_repetition': args.stop_repetition, 'kvcache': args.kvcache, "codec_audio_sr": args.codec_audio_sr, "codec_sr": args.codec_sr}
+    # decode_config = {'top_k': args.top_k, 'top_p': args.top_p, 'temperature': args.temperature, 'stop_repetition': args.stop_repetition, 'kvcache': args.kvcache, "codec_audio_sr": args.codec_audio_sr, "codec_sr": args.codec_sr}
     
-    for num in tqdm(range(args.sample_batch_size)):
-        seed_everything(args.seed+num)
-        new_audio = inference_one_sample(model, Namespace(**config), phn2num, text_tokenizer, audio_tokenizer, audio_fn, args.orig_transcript, args.target_transcript, mask_interval, args.cfg_coef, args.aug_text, args.aug_context, args.use_watermark, args.tts, device, decode_config)
-        # save segments for comparison
-        new_audio = new_audio[0].cpu()
-        save_fn_new = f"{args.output_dir}/{args.savename}_new_seed{args.seed+num}.wav"
-        torchaudio.save(save_fn_new, new_audio, args.codec_audio_sr)
+    # for num in tqdm(range(args.sample_batch_size)):
+    #     seed_everything(args.seed+num)
+    #     new_audio = inference_one_sample(model, Namespace(**config), phn2num, text_tokenizer, audio_tokenizer, audio_fn, args.orig_transcript, args.target_transcript, mask_interval, args.cfg_coef, args.aug_text, args.aug_context, args.use_watermark, args.tts, device, decode_config)
+    #     # save segments for comparison
+    #     new_audio = new_audio[0].cpu()
+    #     save_fn_new = f"{args.output_dir}/{args.savename}_new_seed{args.seed+num}.wav"
+    #     torchaudio.save(save_fn_new, new_audio, args.codec_audio_sr)
     
-    save_fn_orig = f"{args.output_dir}/{args.savename}_orig.wav"
-    shutil.copyfile(audio_fn, save_fn_orig)
+    # save_fn_orig = f"{args.output_dir}/{args.savename}_orig.wav"
+    # shutil.copyfile(audio_fn, save_fn_orig)
         
     end_time = time.time()
     elapsed_time = end_time - start_time
