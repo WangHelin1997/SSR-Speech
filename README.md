@@ -103,84 +103,6 @@ It is ready to use on [default url](http://127.0.0.1:7860).
 4. Align
 5. Run
 
-
-## Training
-To train an SSR-Speech model, you need to prepare the following parts:
-1. Prepare a json file saving data in the following format (including utterances and their transcripts):
-```
-{
-"segment_id": "YOU1000000012_S0000106",
-"wav": "/data/gigaspeech/wavs/xl/YOU1000000012/YOU1000000012_S0000106.wav",
-"trans": "then you can look at o b s or wirecast as a professional solution then. if you're on a mac and you're looking for a really cheap and easy way to create a professional live stream.",
-"duration": 9.446044921875
-}
-```
-
-2. Encode the utterances into codes using e.g. Encodec. Run:
-
-```bash
-export CUDA_VISIBLE_DEVICES=0
-cd ./data
-AUDIO_PATH=''
-SAVE_DIR=''
-ENCODEC_PATH=''
-DATA_NAME=''
-python encode.py \
---dataset_name ${DATA_NAME} \
---audiopath ${AUDIO_PATH} \
---save_dir ${SAVE_DIR} \
---encodec_model_path ${ENCODEC_PATH} \
---batch_size 32 \
---start 0 \
---end 10000000
-```
-Here, `AUDIO_PATH` is the path where the json file was saved, `SAVE_DIR` is the path where the processed data will be saved, `ENCODEC_PATH` is the path of a pretrained encodec model and `DATA_NAME` is the saved name of the dataset. Here the `start` and `end` indexes are used for multi-gpu processing.
-
-3. Convert transcripts into phoneme sequence. Run:
-
-```bash
-AUDIO_PATH=''
-SAVE_DIR=''
-DATA_NAME=''
-python phonemize.py \
---dataset_name ${DATA_NAME} \
---dataset_dir ${AUDIO_PATH} \
---save_dir ${SAVE_DIR}
-```
-Add `language='cmn'` in Line 47 (`phonemize.py`) when you process Mandarin.
-
-4. Prepare manifest (i.e. metadata). Run:
-
-```bash
-AUDIO_PATH=''
-SAVE_DIR=''
-DATA_NAME=''
-python filemaker.py \
---dataset_name ${DATA_NAME} \
---dataset_dir ${AUDIO_PATH} \
---save_dir ${SAVE_DIR}
-```
-
-5. Prepare a phoneme set (we named it vocab.txt)
-
-```bash
-SAVE_DIR=''
-DATA_NAME=''
-python vocab.py \
---dataset_name ${DATA_NAME} \
---save_dir ${SAVE_DIR}
-```
-
-
-Now, you are good to start training!
-
-```bash
-cd ./z_scripts
-bash e830M.sh
-```
-
-If your dataset introduce new phonemes (which is very likely) that doesn't exist in the giga checkpoint, make sure you combine the original phonemes with the phoneme from your data when construction vocab. And you need to adjust `--text_vocab_size` and `--text_pad_token` so that the former is bigger than or equal to you vocab size, and the latter has the same value as `--text_vocab_size` (i.e. `--text_pad_token` is always the last token). From our experience, you can set `--text_vocab_size` to `100` for an English model and `200` for a Mandarin model.
-
 ## Inference examples
 <!-- For Mandarin speech editing test, please run:
 
@@ -304,6 +226,85 @@ python inference_v2.py  \
     --output_dir "./demo/generated_tts"\
     --savename "5895_34622_000026_000002"
 ```
+
+
+## Training
+To train an SSR-Speech model, you need to prepare the following parts:
+1. Prepare a json file saving data in the following format (including utterances and their transcripts):
+```
+{
+"segment_id": "YOU1000000012_S0000106",
+"wav": "/data/gigaspeech/wavs/xl/YOU1000000012/YOU1000000012_S0000106.wav",
+"trans": "then you can look at o b s or wirecast as a professional solution then. if you're on a mac and you're looking for a really cheap and easy way to create a professional live stream.",
+"duration": 9.446044921875
+}
+```
+
+2. Encode the utterances into codes using e.g. Encodec. Run:
+
+```bash
+export CUDA_VISIBLE_DEVICES=0
+cd ./data
+AUDIO_PATH=''
+SAVE_DIR=''
+ENCODEC_PATH=''
+DATA_NAME=''
+python encode.py \
+--dataset_name ${DATA_NAME} \
+--audiopath ${AUDIO_PATH} \
+--save_dir ${SAVE_DIR} \
+--encodec_model_path ${ENCODEC_PATH} \
+--batch_size 32 \
+--start 0 \
+--end 10000000
+```
+Here, `AUDIO_PATH` is the path where the json file was saved, `SAVE_DIR` is the path where the processed data will be saved, `ENCODEC_PATH` is the path of a pretrained encodec model and `DATA_NAME` is the saved name of the dataset. Here the `start` and `end` indexes are used for multi-gpu processing.
+
+3. Convert transcripts into phoneme sequence. Run:
+
+```bash
+AUDIO_PATH=''
+SAVE_DIR=''
+DATA_NAME=''
+python phonemize.py \
+--dataset_name ${DATA_NAME} \
+--dataset_dir ${AUDIO_PATH} \
+--save_dir ${SAVE_DIR}
+```
+Add `language='cmn'` in Line 47 (`phonemize.py`) when you process Mandarin.
+
+4. Prepare manifest (i.e. metadata). Run:
+
+```bash
+AUDIO_PATH=''
+SAVE_DIR=''
+DATA_NAME=''
+python filemaker.py \
+--dataset_name ${DATA_NAME} \
+--dataset_dir ${AUDIO_PATH} \
+--save_dir ${SAVE_DIR}
+```
+
+5. Prepare a phoneme set (we named it vocab.txt)
+
+```bash
+SAVE_DIR=''
+DATA_NAME=''
+python vocab.py \
+--dataset_name ${DATA_NAME} \
+--save_dir ${SAVE_DIR}
+```
+
+
+Now, you are good to start training!
+
+```bash
+cd ./z_scripts
+bash e830M.sh
+```
+
+If your dataset introduce new phonemes (which is very likely) that doesn't exist in the giga checkpoint, make sure you combine the original phonemes with the phoneme from your data when construction vocab. And you need to adjust `--text_vocab_size` and `--text_pad_token` so that the former is bigger than or equal to you vocab size, and the latter has the same value as `--text_vocab_size` (i.e. `--text_pad_token` is always the last token). From our experience, you can set `--text_vocab_size` to `100` for an English model and `200` for a Mandarin model.
+
 
 ## Training WaterMarking Encodec
 
