@@ -14,12 +14,39 @@ Official Pytorch implementation of the paper: SSR-Speech: Towards Stable, Safe a
 - [ ] Release Mandarin model weights
 - [ ] HuggingFace Spaces demo
 - [x] arxiv paper
-- [ ] WhisperX forced alignment
-- [ ] ASR for automatically transcipt the prompt for TTS
+- [x] WhisperX forced alignment
+- [x] ASR for automatically transcipt the prompt for TTS
 
 
 ## Environment setup
 ```bash
+pip install git+https://github.com/WangHelin1997/SSR-Speech.git#subdirectory=audiocraft
+pip install xformers==0.0.22
+pip install torchaudio torch
+apt-get install ffmpeg
+apt-get install espeak-ng
+pip install tensorboard==2.16.2
+pip install phonemizer==3.2.1
+pip install datasets==2.16.0
+pip install torchmetrics==0.11.1
+pip install huggingface_hub==0.22.2
+
+# only use for inference
+apt-get install -y espeak espeak-data libespeak1 libespeak-dev
+apt-get install -y festival*
+apt-get install -y build-essential
+apt-get install -y flac libasound2-dev libsndfile1-dev vorbis-tools
+apt-get install -y libxml2-dev libxslt-dev zlib1g-dev
+pip install gradio==3.50.2
+pip install nltk>=3.8.1
+pip install openai-whisper>=20231117
+pip install aeneas>=1.7.3.0
+pip install whisperx>=3.1.1
+pip install faster-whisper==1.0.0
+pip install num2words==0.5.13
+```
+
+<!-- ```bash
 conda create -n ssr python=3.9.16
 conda activate ssr
 
@@ -41,7 +68,7 @@ mfa model download dictionary english_us_arpa
 mfa model download acoustic english_us_arpa
 mfa model download dictionary mandarin_china_mfa
 mfa model download acoustic mandarin_mfa
-```
+``` -->
 
 ## Pretrained Models
 
@@ -63,17 +90,7 @@ SSR-Speech/
 [![Open in Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1g4-Oqd1Fu9WfDFb-nicfxqsWIPvsGb91?usp=sharing)
 
 ### Run locally
-After environment setup install additional dependencies:
-```bash
-apt-get install -y espeak espeak-data libespeak1 libespeak-dev
-apt-get install -y festival*
-apt-get install -y build-essential
-apt-get install -y flac libasound2-dev libsndfile1-dev vorbis-tools
-apt-get install -y libxml2-dev libxslt-dev zlib1g-dev
-pip install -r gradio_requirements.txt
-```
-
-Run gradio server from terminal:
+After environment setup, run gradio server from terminal:
 ```bash
 python gradio_app.py
 ```
@@ -165,7 +182,7 @@ bash e830M.sh
 If your dataset introduce new phonemes (which is very likely) that doesn't exist in the giga checkpoint, make sure you combine the original phonemes with the phoneme from your data when construction vocab. And you need to adjust `--text_vocab_size` and `--text_pad_token` so that the former is bigger than or equal to you vocab size, and the latter has the same value as `--text_vocab_size` (i.e. `--text_pad_token` is always the last token). From our experience, you can set `--text_vocab_size` to `100` for an English model and `200` for a Mandarin model.
 
 ## Inference examples
-For Mandarin speech editing test, please run:
+<!-- For Mandarin speech editing test, please run:
 
 ```bash
 python inference.py  \
@@ -189,7 +206,7 @@ python inference.py  \
     --temp_folder "./demo/temp"\
     --output_dir "./demo/generated_se"\
     --savename "pony"
-```
+``` -->
 
 For English speech editing test, please run:
 
@@ -217,7 +234,31 @@ python inference.py  \
     --savename "84_121550_000074_00000"
 ```
 
-For Mandarin zero-shot TTS test, please run:
+<!-- ```bash
+python inference.py  \
+    --use_downloaded_mfa \
+    --mfa_dict_path "./pretrained_models/english_us_arpa.dict" \
+    --mfa_path "./pretrained_models/english_us_arpa.zip" \
+    --seed 2024 \
+    --sub_amount 0.12 \
+    --top_p 0.8 \
+    --stop_repetition 2 \
+    --sample_batch_size 1 \
+    --cfg_coef 1.5 \
+    --aug_text \
+    --use_watermark \
+    --language 'en' \
+    --model_path "./pretrained_models/English_10k/e830M/best_bundle.pth" \
+    --codec_path "./pretrained_models/WMEncodec/checkpoint.th" \
+    --orig_audio "./demo/84_121550_000074_000000.wav" \
+    --orig_transcript "But when I had approached so near to them The common object, which the sense deceives, Lost not by distance any of its marks," \
+    --target_transcript "But when I saw the mirage of the lake in the distance, which the sense deceives, Lost not by distance any marks," \
+    --temp_folder "./demo/temp"\
+    --output_dir "./demo/generated_se"\
+    --savename "84_121550_000074_00000"
+``` -->
+
+<!-- For Mandarin zero-shot TTS test, please run:
 
 ```bash
 python inference.py  \
@@ -242,7 +283,7 @@ python inference.py  \
     --temp_folder "./demo/temp"\
     --output_dir "./demo/generated_tts"\
     --savename "pony"
-```
+``` -->
 
 For English zero-shot TTS test, please run:
 
