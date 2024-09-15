@@ -211,10 +211,7 @@ python inference.py  \
 For English speech editing test, please run:
 
 ```bash
-python inference.py  \
-    --use_downloaded_mfa \
-    --mfa_dict_path "./pretrained_models/english_us_arpa.dict" \
-    --mfa_path "./pretrained_models/english_us_arpa.zip" \
+python inference_v2.py  \
     --seed 2024 \
     --sub_amount 0.12 \
     --top_p 0.8 \
@@ -224,10 +221,9 @@ python inference.py  \
     --aug_text \
     --use_watermark \
     --language 'en' \
-    --model_path "./pretrained_models/English_10k/e830M/best_bundle.pth" \
-    --codec_path "./pretrained_models/WMEncodec/checkpoint.th" \
+    --model_path "./pretrained_models/English.pth" \
+    --codec_path "./pretrained_models/wmencodec.th" \
     --orig_audio "./demo/84_121550_000074_000000.wav" \
-    --orig_transcript "But when I had approached so near to them The common object, which the sense deceives, Lost not by distance any of its marks," \
     --target_transcript "But when I saw the mirage of the lake in the distance, which the sense deceives, Lost not by distance any marks," \
     --temp_folder "./demo/temp"\
     --output_dir "./demo/generated_se"\
@@ -288,10 +284,7 @@ python inference.py  \
 For English zero-shot TTS test, please run:
 
 ```bash
-python inference.py  \
-    --use_downloaded_mfa \
-    --mfa_dict_path "./pretrained_models/english_us_arpa.dict" \
-    --mfa_path "./pretrained_models/english_us_arpa.zip" \
+python inference_v2.py  \
     --seed 2024 \
     --sub_amount 0.01 \
     --top_p 0.8 \
@@ -302,11 +295,11 @@ python inference.py  \
     --use_watermark \
     --tts \
     --language 'en' \
-    --model_path "./pretrained_models/English_10k/e830M/best_bundle.pth" \
-    --codec_path "./pretrained_models/WMEncodec/checkpoint.th" \
+    --model_path "./pretrained_models/English.pth" \
+    --codec_path "./pretrained_models/wmencodec.th" \
     --orig_audio "./demo/5895_34622_000026_000002.wav" \
-    --orig_transcript "Gwynplaine had, besides, for his work and for his feats of strength, round his neck and over his shoulders, an esclavine of leather." \
-    --target_transcript "Gwynplaine had, besides, for his work and for his feats of strength, I cannot believe that the same model can also do text to speech synthesis too!" \
+    --prompt_length 3 \
+    --target_transcript "I cannot believe that the same model can also do text to speech synthesis too!" \
     --temp_folder "./demo/temp"\
     --output_dir "./demo/generated_tts"\
     --savename "5895_34622_000026_000002"
