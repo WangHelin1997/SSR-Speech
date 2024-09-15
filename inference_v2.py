@@ -195,6 +195,7 @@ def parse_args():
     parser.add_argument('--aug_context', action='store_true')
     parser.add_argument('--use_watermark', action='store_true')
     parser.add_argument('--tts', action='store_true')
+    parser.add_argument('--prompt_length', type=int, default=3, help='used for tts prompt, will automatically cut the prompt audio to this length')
     parser.add_argument('--language', type=str, default='en', help="choose from en or zh")
     parser.add_argument('--model_path', type=str, default=None)
     parser.add_argument('--codec_path', type=str, default=None)
@@ -232,14 +233,14 @@ def main(args):
     os.makedirs(args.output_dir, exist_ok=True)
     os.system(f"cp {args.orig_audio} {args.temp_folder}")
     filename = os.path.splitext(args.orig_audio.split("/")[-1])[0]
+    audio_fn = f"{args.temp_folder}/{filename}.wav"
 
     # resampling audio to 16k Hz
     import librosa
     import soundfile as sf
-    audio, sr = librosa.load(os.path.join(args.temp_folder, filename+'.wav'), sr=16000)
-    sf.write(os.path.join(args.temp_folder, filename+'.wav'), audio, 16000)
+    audio, _ = librosa.load(audio_fn, sr=16000)
+    sf.write(audio_fn, audio, 16000)
         
-    audio_fn = f"{args.temp_folder}/{filename}.wav"
     
     align_model = WhisperxAlignModel(args.language)
     transcribe_model = WhisperxModel(args.whisper_model_name, align_model, args.language)
@@ -249,6 +250,29 @@ def main(args):
     target_transcript = args.target_transcript.lower()
     print(orig_transcript)
     print(target_transcript)
+
+    # Cut long audio for tts
+    if args.tts:
+        info = torchaudio.info(audio_fn)
+        duration = info.num_frames / info.sample_rate
+        if duration > args.prompt_length:
+            seg_num = len(transcribe_state['segments'])
+            cut_length = duration
+            for i in range(seg_num):
+                words = transcribe_state['segments'][i]['words']
+                for item in words:
+                    if item['end'] >= args.prompt_length:
+                        cut_length = min(cut_length, args.prompt_length)
+        audio, _ = librosa.load(audio_fn, sr=16000, duration=cut_length)
+        sf.write(audio_fn, audio, 16000)
+        orig_transcript = transcribe(audio_fn, transcribe_model) if args.orig_transcript is None else args.orig_transcript
+        transcribe_state = align(args, orig_transcript, audio_fn, align_model)
+        orig_transcript = orig_transcript.lower()
+        print(orig_transcript)
+        target_transcript = orig_transcript + ' ' + target_transcript if args.language == 'en' else orig_transcript + target_transcript
+        print(target_transcript)
+
+
     # run the script to turn user input to the format that the model can take
     if not args.tts:
         operations, orig_spans = parse_edit_en(orig_transcript, target_transcript) if args.language == 'en' else parse_edit_zh(orig_transcript, target_transcript)
