@@ -18,7 +18,7 @@ import warnings
 
 import einops
 from num2words import num2words
-import spacy
+# import spacy
 from transformers import RobertaTokenizer, T5EncoderModel, T5Tokenizer  # type: ignore
 import torch
 from torch import nn
@@ -185,72 +185,72 @@ class Tokenizer:
         raise NotImplementedError()
 
 
-class WhiteSpaceTokenizer(Tokenizer):
-    """This tokenizer should be used for natural language descriptions.
-    For example:
-    ["he didn't, know he's going home.", 'shorter sentence'] =>
-    [[78, 62, 31,  4, 78, 25, 19, 34],
-    [59, 77,  0,  0,  0,  0,  0,  0]]
-    """
-    PUNCTUATION = "?:!.,;"
+# class WhiteSpaceTokenizer(Tokenizer):
+#     """This tokenizer should be used for natural language descriptions.
+#     For example:
+#     ["he didn't, know he's going home.", 'shorter sentence'] =>
+#     [[78, 62, 31,  4, 78, 25, 19, 34],
+#     [59, 77,  0,  0,  0,  0,  0,  0]]
+#     """
+#     PUNCTUATION = "?:!.,;"
 
-    def __init__(self, n_bins: int, pad_idx: int = 0, language: str = "en_core_web_sm",
-                 lemma: bool = True, stopwords: bool = True) -> None:
-        self.n_bins = n_bins
-        self.pad_idx = pad_idx
-        self.lemma = lemma
-        self.stopwords = stopwords
-        try:
-            self.nlp = spacy.load(language)
-        except IOError:
-            spacy.cli.download(language)  # type: ignore
-            self.nlp = spacy.load(language)
+#     def __init__(self, n_bins: int, pad_idx: int = 0, language: str = "en_core_web_sm",
+#                  lemma: bool = True, stopwords: bool = True) -> None:
+#         self.n_bins = n_bins
+#         self.pad_idx = pad_idx
+#         self.lemma = lemma
+#         self.stopwords = stopwords
+#         try:
+#             self.nlp = spacy.load(language)
+#         except IOError:
+#             spacy.cli.download(language)  # type: ignore
+#             self.nlp = spacy.load(language)
 
-    @tp.no_type_check
-    def __call__(self, texts: tp.List[tp.Optional[str]],
-                 return_text: bool = False) -> tp.Tuple[torch.Tensor, torch.Tensor]:
-        """Take a list of strings and convert them to a tensor of indices.
+#     @tp.no_type_check
+#     def __call__(self, texts: tp.List[tp.Optional[str]],
+#                  return_text: bool = False) -> tp.Tuple[torch.Tensor, torch.Tensor]:
+#         """Take a list of strings and convert them to a tensor of indices.
 
-        Args:
-            texts (list[str]): List of strings.
-            return_text (bool, optional): Whether to return text as additional tuple item. Defaults to False.
-        Returns:
-            tuple[torch.Tensor, torch.Tensor]:
-                - Indices of words in the LUT.
-                - And a mask indicating where the padding tokens are
-        """
-        output, lengths = [], []
-        texts = deepcopy(texts)
-        for i, text in enumerate(texts):
-            # if current sample doesn't have a certain attribute, replace with pad token
-            if text is None:
-                output.append(torch.Tensor([self.pad_idx]))
-                lengths.append(0)
-                continue
+#         Args:
+#             texts (list[str]): List of strings.
+#             return_text (bool, optional): Whether to return text as additional tuple item. Defaults to False.
+#         Returns:
+#             tuple[torch.Tensor, torch.Tensor]:
+#                 - Indices of words in the LUT.
+#                 - And a mask indicating where the padding tokens are
+#         """
+#         output, lengths = [], []
+#         texts = deepcopy(texts)
+#         for i, text in enumerate(texts):
+#             # if current sample doesn't have a certain attribute, replace with pad token
+#             if text is None:
+#                 output.append(torch.Tensor([self.pad_idx]))
+#                 lengths.append(0)
+#                 continue
 
-            # convert numbers to words
-            text = re.sub(r"(\d+)", lambda x: num2words(int(x.group(0))), text)  # type: ignore
-            # normalize text
-            text = self.nlp(text)  # type: ignore
-            # remove stopwords
-            if self.stopwords:
-                text = [w for w in text if not w.is_stop]  # type: ignore
-            # remove punctuation
-            text = [w for w in text if w.text not in self.PUNCTUATION]  # type: ignore
-            # lemmatize if needed
-            text = [getattr(t, "lemma_" if self.lemma else "text") for t in text]  # type: ignore
+#             # convert numbers to words
+#             text = re.sub(r"(\d+)", lambda x: num2words(int(x.group(0))), text)  # type: ignore
+#             # normalize text
+#             text = self.nlp(text)  # type: ignore
+#             # remove stopwords
+#             if self.stopwords:
+#                 text = [w for w in text if not w.is_stop]  # type: ignore
+#             # remove punctuation
+#             text = [w for w in text if w.text not in self.PUNCTUATION]  # type: ignore
+#             # lemmatize if needed
+#             text = [getattr(t, "lemma_" if self.lemma else "text") for t in text]  # type: ignore
 
-            texts[i] = " ".join(text)
-            lengths.append(len(text))
-            # convert to tensor
-            tokens = torch.Tensor([hash_trick(w, self.n_bins) for w in text])
-            output.append(tokens)
+#             texts[i] = " ".join(text)
+#             lengths.append(len(text))
+#             # convert to tensor
+#             tokens = torch.Tensor([hash_trick(w, self.n_bins) for w in text])
+#             output.append(tokens)
 
-        mask = length_to_mask(torch.IntTensor(lengths)).int()
-        padded_output = pad_sequence(output, padding_value=self.pad_idx).int().t()
-        if return_text:
-            return padded_output, mask, texts  # type: ignore
-        return padded_output, mask
+#         mask = length_to_mask(torch.IntTensor(lengths)).int()
+#         padded_output = pad_sequence(output, padding_value=self.pad_idx).int().t()
+#         if return_text:
+#             return padded_output, mask, texts  # type: ignore
+#         return padded_output, mask
 
 
 class NoopTokenizer(Tokenizer):
