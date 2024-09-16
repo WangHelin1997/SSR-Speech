@@ -18,8 +18,6 @@ import torchaudio
 import torchaudio.transforms as transforms
 from edit_utils_zh import parse_edit_zh
 from edit_utils_en import parse_edit_en
-from edit_utils_zh import parse_tts_zh
-from edit_utils_en import parse_tts_en
 from inference_scale import inference_one_sample
 import time
 from tqdm import tqdm
@@ -267,8 +265,6 @@ def main(args):
                         cut_length = min(item['end'], cut_length)
 
         audio, _ = librosa.load(audio_fn, sr=16000, duration=cut_length)
-        # silence = np.zeros(640) # add a small silence to the end
-        # audio = np.concatenate([audio, silence])
         sf.write(audio_fn, audio, 16000)
         orig_transcript = transcribe(audio_fn, transcribe_model) if args.orig_transcript is None else args.orig_transcript
         if args.language == 'zh':
@@ -280,6 +276,7 @@ def main(args):
             target_transcript = args.target_transcript.lower()
         print(orig_transcript)
         transcribe_state = align(args, orig_transcript, audio_fn, align_model)
+        target_transcript_copy = target_transcript # for tts cut out
         target_transcript = orig_transcript + ' ' + target_transcript if args.language == 'en' else orig_transcript + target_transcript
         print(target_transcript)
 
@@ -329,18 +326,6 @@ def main(args):
         mask_interval = [[round(span[0]*args.codec_sr), round(span[1]*args.codec_sr)] for span in morphed_span]
         mask_interval = torch.LongTensor(mask_interval) # [M,2], M==1 for now
     else:
-        orig_spans = parse_tts_en(orig_transcript, target_transcript) if args.language == 'en' else parse_tts_zh(orig_transcript, target_transcript)
-        print("orig_spans: ", orig_spans)
-            
-        starting_intervals = []
-        ending_intervals = []
-        for orig_span in orig_spans:
-            start, end = get_mask_interval(transcribe_state, orig_span)
-            starting_intervals.append(start)
-            ending_intervals.append(end)
-    
-        print("intervals: ", starting_intervals, ending_intervals)
-    
         info = torchaudio.info(audio_fn)
         audio_dur = info.num_frames / info.sample_rate
         
@@ -358,6 +343,12 @@ def main(args):
         new_audio = new_audio[0].cpu()
         save_fn_new = f"{args.output_dir}/{args.savename}_new_seed{args.seed+num}.wav"
         torchaudio.save(save_fn_new, new_audio, args.codec_audio_sr)
+        if args.tts: # remove the start parts
+            transcribe_state = align(args, target_transcript_copy, save_fn_new, align_model)
+            offset = transcribe_state['segments'][0]['words'][0]['start']
+            audio, _ = librosa.load(save_fn_new, sr=16000, offset=offset)
+            sf.write(save_fn_new, audio, 16000)
+
     
     save_fn_orig = f"{args.output_dir}/{args.savename}_orig.wav"
     shutil.copyfile(audio_fn, save_fn_orig)

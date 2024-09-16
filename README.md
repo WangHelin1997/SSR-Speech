@@ -3,7 +3,9 @@
 </p>
 
 
-[![Paper](https://img.shields.io/badge/arXiv-2409.07556-brightgreen.svg?style=flat-square)](https://arxiv.org/pdf/2409.07556)  [![HuggingFace](https://img.shields.io/badge/%F0%9F%A4%97%20Hugging%20Face-Spaces-blue)](https://huggingface.co/spaces/) [![Models](https://img.shields.io/badge/%F0%9F%A4%97%20Hugging%20Face-Models-blue)](https://huggingface.co/westbrook/SSR-Speech-English)  [![Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1g4-Oqd1Fu9WfDFb-nicfxqsWIPvsGb91?usp=sharing)  [![Demo page](https://img.shields.io/badge/Audio_Samples-blue?logo=Github&style=flat-square)](https://wanghelin1997.github.io/SSR-Speech-Demo/)
+<!-- [![Paper](https://img.shields.io/badge/arXiv-2409.07556-brightgreen.svg?style=flat-square)](https://arxiv.org/pdf/2409.07556)  [![HuggingFace](https://img.shields.io/badge/%F0%9F%A4%97%20Hugging%20Face-Spaces-blue)](https://huggingface.co/spaces/) [![Models](https://img.shields.io/badge/%F0%9F%A4%97%20Hugging%20Face-Models-blue)](https://huggingface.co/westbrook/SSR-Speech-English)  [![Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1g4-Oqd1Fu9WfDFb-nicfxqsWIPvsGb91?usp=sharing)  [![Demo page](https://img.shields.io/badge/Audio_Samples-blue?logo=Github&style=flat-square)](https://wanghelin1997.github.io/SSR-Speech-Demo/) -->
+
+[![Paper](https://img.shields.io/badge/arXiv-2409.07556-brightgreen.svg?style=flat-square)](https://arxiv.org/pdf/2409.07556)  [![Mandarin Models](https://img.shields.io/badge/%F0%9F%A4%97%20Hugging%20Face-Models-blue)](https://huggingface.co/westbrook/SSR-Speech-Mandarin) [![English Models](https://img.shields.io/badge/%F0%9F%A4%97%20Hugging%20Face-Models-blue)](https://huggingface.co/westbrook/SSR-Speech-English)  [![Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1g4-Oqd1Fu9WfDFb-nicfxqsWIPvsGb91?usp=sharing)  [![Demo page](https://img.shields.io/badge/Audio_Samples-blue?logo=Github&style=flat-square)](https://wanghelin1997.github.io/SSR-Speech-Demo/)
 
 Official Pytorch implementation of the paper: SSR-Speech: Towards Stable, Safe and Robust Zero-shot Speech Editing and Synthesis.
 
@@ -47,6 +49,7 @@ pip install aeneas>=1.7.3.0
 pip install whisperx>=3.1.1
 pip install faster-whisper==1.0.0
 pip install num2words==0.5.13
+pip install opencc-python-reimplemented
 ```
 
 <!-- ```bash
@@ -107,31 +110,6 @@ It is ready to use on [default url](http://127.0.0.1:7860).
 5. Run
 
 ## Inference examples
-<!-- For Mandarin speech editing test, please run:
-
-```bash
-python inference.py  \
-    --use_downloaded_mfa \
-    --mfa_dict_path "./pretrained_models/mandarin_china_mfa.dict" \
-    --mfa_path "./pretrained_models/mandarin_mfa.zip" \
-    --seed 2024 \
-    --sub_amount 0.12 \
-    --top_p 0.8 \
-    --stop_repetition 2 \
-    --sample_batch_size 1 \
-    --cfg_coef 1.5 \
-    --aug_text \
-    --use_watermark \
-    --language 'zh' \
-    --model_path "./pretrained_models/Chinese_25k/e830M/best_bundle.pth" \
-    --codec_path "./pretrained_models/WMEncodec/checkpoint.th" \
-    --orig_audio "./demo/pony.wav" \
-    --orig_transcript "能够更有效率地结合给用户提升更多的这种体验也包括他的这个他的后台的效率提升等等我相信这些额额业界的解决方案应该说是" \
-    --target_transcript "能够更有效率地结合给用户提升更多的体验也包括他的这个他的后台的效率提升等等在这个基础上我相信这些额额业界的解决方案应该说是" \
-    --temp_folder "./demo/temp"\
-    --output_dir "./demo/generated_se"\
-    --savename "pony"
-``` -->
 
 For English speech editing test, please run:
 
@@ -139,10 +117,6 @@ For English speech editing test, please run:
 python inference_v2.py  \
     --seed 2024 \
     --sub_amount 0.12 \
-    --top_p 0.8 \
-    --stop_repetition 2 \
-    --sample_batch_size 1 \
-    --cfg_coef 1.5 \
     --aug_text \
     --use_watermark \
     --language 'en' \
@@ -150,9 +124,10 @@ python inference_v2.py  \
     --codec_path "./pretrained_models/wmencodec.th" \
     --orig_audio "./demo/84_121550_000074_000000.wav" \
     --target_transcript "But when I saw the mirage of the lake in the distance, which the sense deceives, Lost not by distance any marks," \
-    --temp_folder "./demo/temp"\
-    --output_dir "./demo/generated_se"\
-    --savename "84_121550_000074_00000"
+    --temp_folder "./demo/temp" \
+    --output_dir "./demo/generated_se" \
+    --savename "84_121550_000074_00000" \
+    --whisper_model_name "base_en"
 ```
 
 <!-- ```bash
@@ -211,23 +186,58 @@ For English zero-shot TTS test, please run:
 ```bash
 python inference_v2.py  \
     --seed 2024 \
-    --sub_amount 0.01 \
-    --top_p 0.8 \
-    --stop_repetition 2 \
-    --sample_batch_size 1 \
-    --cfg_coef 1.5 \
+    --tts \
     --aug_text \
     --use_watermark \
-    --tts \
     --language 'en' \
     --model_path "./pretrained_models/English.pth" \
     --codec_path "./pretrained_models/wmencodec.th" \
     --orig_audio "./demo/5895_34622_000026_000002.wav" \
     --prompt_length 3 \
     --target_transcript "I cannot believe that the same model can also do text to speech synthesis too!" \
-    --temp_folder "./demo/temp"\
-    --output_dir "./demo/generated_tts"\
-    --savename "5895_34622_000026_000002"
+    --temp_folder "./demo/temp" \
+    --output_dir "./demo/generated_tts" \
+    --savename "5895_34622_000026_000002" \
+    --whisper_model_name "base_en"
+```
+
+For Mandarin speech editing test, please run:
+
+```bash
+python inference_v2.py  \
+    --seed 2024 \
+    --sub_amount 0.12 \
+    --aug_text \
+    --use_watermark \
+    --language 'zh' \
+    --model_path "./pretrained_models/Mandarin.pth" \
+    --codec_path "./pretrained_models/wmencodec.th" \
+    --orig_audio "./demo/aishell3_test.wav" \
+    --target_transcript "食品价格以基本都在一万到两万之间" \
+    --temp_folder "./demo/temp" \
+    --output_dir "./demo/generated_se" \
+    --savename "aishell3_test" \
+    --whisper_model_name "base"
+```
+
+For Mandarin zero-shot TTS test, please run:
+
+```bash
+python inference_v2.py  \
+    --seed 2024 \
+    --tts \
+    --aug_text \
+    --use_watermark \
+    --language 'zh' \
+    --model_path "./pretrained_models/English.pth" \
+    --codec_path "./pretrained_models/wmencodec.th" \
+    --orig_audio "./demo/aishell3_test.wav" \
+    --prompt_length 3 \
+    --target_transcript "我简直不敢相信同一个模型也可以进行文本到语音的合成" \
+    --temp_folder "./demo/temp" \
+    --output_dir "./demo/generated_tts" \
+    --savename "aishell3_test" \
+    --whisper_model_name "base"
 ```
 
 
