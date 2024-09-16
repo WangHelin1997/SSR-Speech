@@ -12,7 +12,7 @@ from setuptools import setup, find_packages
 NAME = 'audiocraft'
 DESCRIPTION = 'Audio generation research library for PyTorch'
 
-URL = 'https://github.com/facebookresearch/audiocraft'
+URL = 'https://github.com/WangHelin1997/SSR-Speech/audiocraft'
 AUTHOR = 'FAIR Speech & Audio'
 EMAIL = 'defossez@meta.com, jadecopet@meta.com'
 REQUIRES_PYTHON = '>=3.8.0'
