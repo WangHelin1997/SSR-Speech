@@ -102,10 +102,6 @@ def get_transcribe_state(segments):
     return {
         "segments": segments,
         "transcript": transcript,
-        "words_info": words_info,
-        "transcript_with_start_time": " ".join([f"{word['start']} {word['word']}" for word in words_info]),
-        "transcript_with_end_time": " ".join([f"{word['word']} {word['end']}" for word in words_info]),
-        "word_bounds": [f"{word['start']} {word['word']} {word['end']}" for word in words_info]
     }
 
 def transcribe(audio_path, transcribe_model):
@@ -180,7 +176,7 @@ def get_mask_interval(transcribe_state, word_span):
 
 def parse_args():
     parser = argparse.ArgumentParser(description="inference speech editing")
-    parser.add_argument("--sub_amount", type=float, default=0.12, help="if the performance is not good, try modify this span")
+    parser.add_argument("--sub_amount", type=float, default=0.12, help="if the performance is not good, try modify this span, not used for tts")
     parser.add_argument('--codec_audio_sr', type=int, default=16000)
     parser.add_argument('--codec_sr', type=int, default=50)
     parser.add_argument('--top_k', type=int, default=0)
@@ -196,7 +192,7 @@ def parse_args():
     parser.add_argument('--use_watermark', action='store_true')
     parser.add_argument('--tts', action='store_true')
     parser.add_argument('--prompt_length', type=int, default=3, help='used for tts prompt, will automatically cut the prompt audio to this length')
-    parser.add_argument('--language', type=str, default='en', help="choose from en or zh")
+    parser.add_argument('--language', type=str, choices=["en", "zh"], help="choose from en or zh")
     parser.add_argument('--model_path', type=str, default=None)
     parser.add_argument('--codec_path', type=str, default=None)
     parser.add_argument('--orig_audio', type=str, default=None)
@@ -205,7 +201,7 @@ def parse_args():
     parser.add_argument('--temp_folder', type=str, default=None)
     parser.add_argument('--output_dir', type=str, default=None)
     parser.add_argument('--savename', type=str, default=None)
-    parser.add_argument('--whisper_model_name', type=str, choices=["base.en", "small.en", "medium.en", "large"], default="base.en")
+    parser.add_argument('--whisper_model_name', type=str, choices=["base.en", "base"], default="base.en")
     
     return parser.parse_args()
 
@@ -245,30 +241,45 @@ def main(args):
     align_model = WhisperxAlignModel(args.language)
     transcribe_model = WhisperxModel(args.whisper_model_name, align_model, args.language)
     orig_transcript = transcribe(audio_fn, transcribe_model) if args.orig_transcript is None else args.orig_transcript
+    if args.language == 'zh':
+        import opencc
+        converter = opencc.OpenCC('t2s') 
+        orig_transcript = converter.convert(orig_transcript)
+        target_transcript = args.target_transcript
+    elif args.language == 'en':
+        orig_transcript = orig_transcript.lower()
+        target_transcript = args.target_transcript.lower()
     transcribe_state = align(args, orig_transcript, audio_fn, align_model)
-    orig_transcript = orig_transcript.lower()
-    target_transcript = args.target_transcript.lower()
     print(orig_transcript)
     print(target_transcript)
 
-    # Cut long audio for tts
     if args.tts:
         info = torchaudio.info(audio_fn)
         duration = info.num_frames / info.sample_rate
+        cut_length = duration
+        # Cut long audio for tts
         if duration > args.prompt_length:
             seg_num = len(transcribe_state['segments'])
-            cut_length = duration
             for i in range(seg_num):
                 words = transcribe_state['segments'][i]['words']
                 for item in words:
                     if item['end'] >= args.prompt_length:
-                        cut_length = min(cut_length, args.prompt_length)
+                        cut_length = min(item['end'], cut_length)
+
         audio, _ = librosa.load(audio_fn, sr=16000, duration=cut_length)
+        # silence = np.zeros(640) # add a small silence to the end
+        # audio = np.concatenate([audio, silence])
         sf.write(audio_fn, audio, 16000)
         orig_transcript = transcribe(audio_fn, transcribe_model) if args.orig_transcript is None else args.orig_transcript
-        transcribe_state = align(args, orig_transcript, audio_fn, align_model)
-        orig_transcript = orig_transcript.lower()
+        if args.language == 'zh':
+            import opencc
+            converter = opencc.OpenCC('t2s') 
+            orig_transcript = converter.convert(orig_transcript)
+        elif args.language == 'en':
+            orig_transcript = orig_transcript.lower()
+            target_transcript = args.target_transcript.lower()
         print(orig_transcript)
+        transcribe_state = align(args, orig_transcript, audio_fn, align_model)
         target_transcript = orig_transcript + ' ' + target_transcript if args.language == 'en' else orig_transcript + target_transcript
         print(target_transcript)
 
@@ -333,8 +344,7 @@ def main(args):
         info = torchaudio.info(audio_fn)
         audio_dur = info.num_frames / info.sample_rate
         
-        morphed_span = [(max(start, 1/args.codec_sr), min(end, audio_dur))
-                        for start, end in zip(starting_intervals, ending_intervals)] # in seconds
+        morphed_span = [(audio_dur, audio_dur)] # in seconds
         mask_interval = [[round(span[0]*args.codec_sr), round(span[1]*args.codec_sr)] for span in morphed_span]
         mask_interval = torch.LongTensor(mask_interval) # [M,2], M==1 for now
         print("mask_interval: ", mask_interval)

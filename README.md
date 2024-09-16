@@ -11,7 +11,7 @@ Official Pytorch implementation of the paper: SSR-Speech: Towards Stable, Safe a
 
 ## TODO
 - [x] Release English model weights
-- [ ] Release Mandarin model weights
+- [x] Release Mandarin model weights
 - [ ] HuggingFace Spaces demo
 - [x] arxiv paper
 - [x] WhisperX forced alignment
@@ -20,6 +20,9 @@ Official Pytorch implementation of the paper: SSR-Speech: Towards Stable, Safe a
 
 ## Environment setup
 ```bash
+conda create -n ssr python=3.9.16
+conda activate ssr
+
 pip install git+https://github.com/WangHelin1997/SSR-Speech.git#subdirectory=audiocraft
 pip install xformers==0.0.22
 pip install torchaudio torch
@@ -73,7 +76,7 @@ mfa model download acoustic mandarin_mfa
 ## Pretrained Models
 
 Download our pretrained English models from [huggingface](https://huggingface.co/westbrook/SSR-Speech-English).
-We provide MFA models, an Watemark Encodec model and a pretrained English model on GigaSpeech XL set.
+We provide an Watemark Encodec model, a pretrained English model on GigaSpeech XL set, and a pretrained Mandarin model on internal data (25,000 hours).
 
 After downloading the files, put them under this repo, like:
 ```
