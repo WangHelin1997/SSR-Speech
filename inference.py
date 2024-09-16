@@ -1,4 +1,5 @@
 # @ hwang258@jh.edu
+# old version, not used now
 
 import os
 os.environ["CUDA_VISIBLE_DEVICES"]="0"
