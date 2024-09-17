@@ -26,6 +26,7 @@ from models import ssr
 import re
 from num2words import num2words
 import uuid
+import opencc
 import nltk
 nltk.download('punkt')
 
@@ -105,53 +106,35 @@ def get_transcribe_state(segments):
 def transcribe(audio_path, transcribe_model):
     segments = transcribe_model.transcribe(audio_path)
     state = get_transcribe_state(segments)
-    return state["transcript"]
+    return state["transcript"], state['segments']
 
 def get_random_string():
     return "".join(str(uuid.uuid4()).split("-"))
 
-def align_segments(args, transcript, audio_path):
-    from aeneas.executetask import ExecuteTask
-    from aeneas.task import Task
-    import json
-    config_string = 'task_language=eng|os_task_file_format=json|is_text_type=plain'
+def traditional_to_simplified(segments):
+    converter = opencc.OpenCC('t2s') 
+    seg_num = len(segments)
+    for i in range(seg_num):
+        words = segments[i]['words']
+        for j in range(len(words)):
+            segments[i]['words'][j]['word'] = converter.convert(segments[i]['words'][j]['word'])
+        segments[i]['text'] = converter.convert(segments[i]['text'])
+    return segments
 
-    tmp_transcript_path = os.path.join(args.temp_folder, f"{get_random_string()}.txt")
-    tmp_sync_map_path = os.path.join(args.temp_folder, f"{get_random_string()}.json")
-    with open(tmp_transcript_path, "w") as f:
-        f.write(transcript)
-
-    task = Task(config_string=config_string)
-    task.audio_file_path_absolute = os.path.abspath(audio_path)
-    task.text_file_path_absolute = os.path.abspath(tmp_transcript_path)
-    task.sync_map_file_path_absolute = os.path.abspath(tmp_sync_map_path)
-    ExecuteTask(task).execute()
-    task.output_sync_map_file()
-
-    with open(tmp_sync_map_path, "r") as f:
-        return json.load(f)
     
-def align(args, transcript, audio_path, align_model):
-    transcript = replace_numbers_with_words(transcript).replace("  ", " ").replace("  ", " ")
-    fragments = align_segments(args, transcript, audio_path)
-    segments = [{
-        "start": float(fragment["begin"]),
-        "end": float(fragment["end"]),
-        "text": " ".join(fragment["lines"])
-    } for fragment in fragments["fragments"]]
+def align(args, segments, audio_path, align_model):
     segments = align_model.align(segments, audio_path)
     state = get_transcribe_state(segments)
 
     return state
 
 def get_mask_interval(transcribe_state, word_span):
-    # print(transcribe_state)
     seg_num = len(transcribe_state['segments'])
     data = []
     for i in range(seg_num):
-      words = transcribe_state['segments'][i]['words']
-      for item in words:
-        data.append([item['start'], item['end'], item['word']])
+        words = transcribe_state['segments'][i]['words']
+        for item in words:
+          data.append([item['start'], item['end'], item['word']])
 
     s, e = word_span[0], word_span[1]
     assert s <= e, f"s:{s}, e:{e}"
@@ -238,16 +221,17 @@ def main(args):
     
     align_model = WhisperxAlignModel(args.language)
     transcribe_model = WhisperxModel(args.whisper_model_name, align_model, args.language)
-    orig_transcript = transcribe(audio_fn, transcribe_model) if args.orig_transcript is None else args.orig_transcript
+    orig_transcript, segments = transcribe(audio_fn, transcribe_model) if args.orig_transcript is None else args.orig_transcript
     if args.language == 'zh':
-        import opencc
-        converter = opencc.OpenCC('t2s') 
+        converter = opencc.OpenCC('t2s')
         orig_transcript = converter.convert(orig_transcript)
         target_transcript = args.target_transcript
+        transcribe_state = align(args, traditional_to_simplified(segments), audio_fn, align_model)
+        transcribe_state['segments'] = traditional_to_simplified(transcribe_state['segments'])
     elif args.language == 'en':
         orig_transcript = orig_transcript.lower()
         target_transcript = args.target_transcript.lower()
-    transcribe_state = align(args, orig_transcript, audio_fn, align_model)
+        transcribe_state = align(args, segments, audio_fn, align_model)
     print(orig_transcript)
     print(target_transcript)
 
@@ -266,17 +250,23 @@ def main(args):
 
         audio, _ = librosa.load(audio_fn, sr=16000, duration=cut_length)
         sf.write(audio_fn, audio, 16000)
-        orig_transcript = transcribe(audio_fn, transcribe_model) if args.orig_transcript is None else args.orig_transcript
+        orig_transcript, segments = transcribe(audio_fn, transcribe_model) if args.orig_transcript is None else args.orig_transcript
+        
         if args.language == 'zh':
-            import opencc
-            converter = opencc.OpenCC('t2s') 
+            converter = opencc.OpenCC('t2s')
             orig_transcript = converter.convert(orig_transcript)
+            transcribe_state = align(args, traditional_to_simplified(segments), audio_fn, align_model)
+            transcribe_state['segments'] = traditional_to_simplified(transcribe_state['segments'])
         elif args.language == 'en':
             orig_transcript = orig_transcript.lower()
             target_transcript = args.target_transcript.lower()
+            transcribe_state = align(args, segments, audio_fn, align_model)
         print(orig_transcript)
-        transcribe_state = align(args, orig_transcript, audio_fn, align_model)
         target_transcript_copy = target_transcript # for tts cut out
+        if args.language == 'en':
+            target_transcript_copy = target_transcript_copy.split(' ')[0]
+        elif args.language == 'zh':
+            target_transcript_copy = target_transcript_copy[0]
         target_transcript = orig_transcript + ' ' + target_transcript if args.language == 'en' else orig_transcript + target_transcript
         print(target_transcript)
 
@@ -344,8 +334,21 @@ def main(args):
         save_fn_new = f"{args.output_dir}/{args.savename}_new_seed{args.seed+num}.wav"
         torchaudio.save(save_fn_new, new_audio, args.codec_audio_sr)
         if args.tts: # remove the start parts
-            transcribe_state = align(args, target_transcript_copy, save_fn_new, align_model)
-            offset = transcribe_state['segments'][0]['words'][0]['start']
+            new_transcript, new_segments = transcribe(save_fn_new, transcribe_model)
+            if args.language == 'zh':
+                transcribe_state = align(args, traditional_to_simplified(new_segments), save_fn_new, align_model)
+                transcribe_state['segments'] = traditional_to_simplified(transcribe_state['segments'])
+                tmp1 = transcribe_state['segments'][0]['words'][0]['word']
+                tmp2 = target_transcript_copy
+            elif args.language == 'en':
+                transcribe_state = align(args, new_segments, save_fn_new, align_model)
+                tmp1 = transcribe_state['segments'][0]['words'][0]['word'].lower()
+                tmp2 = target_transcript_copy.lower()
+            if tmp1 == tmp2:
+                offset = transcribe_state['segments'][0]['words'][0]['start']
+            else:
+                offset = transcribe_state['segments'][0]['words'][1]['start']
+            print(tmp1,tmp2)
             audio, _ = librosa.load(save_fn_new, sr=16000, offset=offset)
             sf.write(save_fn_new, audio, 16000)
 

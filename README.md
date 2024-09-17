@@ -37,11 +37,6 @@ pip install torchmetrics==0.11.1
 pip install huggingface_hub==0.22.2
 
 # only use for inference
-apt-get install -y espeak espeak-data libespeak1 libespeak-dev
-apt-get install -y festival*
-apt-get install -y build-essential
-apt-get install -y flac libasound2-dev libsndfile1-dev vorbis-tools
-apt-get install -y libxml2-dev libxslt-dev zlib1g-dev
 pip install gradio==3.50.2
 pip install nltk>=3.8.1
 pip install openai-whisper>=20231117
