@@ -41,7 +41,6 @@ pip install huggingface_hub==0.22.2
 pip install gradio==3.50.2
 pip install nltk>=3.8.1
 pip install openai-whisper>=20231117
-pip install aeneas>=1.7.3.0
 pip install whisperx>=3.1.1
 pip install faster-whisper==1.0.0
 pip install num2words==0.5.13
