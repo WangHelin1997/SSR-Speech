@@ -177,7 +177,7 @@ def parse_args():
     parser.add_argument('--model_path', type=str, default=None)
     parser.add_argument('--codec_path', type=str, default=None)
     parser.add_argument('--orig_audio', type=str, default=None)
-    parser.add_argument('--orig_transcript', type=str, default=None, help="If not provided, a whisperx model will be used")
+    parser.add_argument('--orig_transcript', type=str, default=None, help="not use now, a whisperx model will automatically do this")
     parser.add_argument('--target_transcript', type=str, default=None)
     parser.add_argument('--temp_folder', type=str, default=None)
     parser.add_argument('--output_dir', type=str, default=None)
@@ -221,7 +221,8 @@ def main(args):
     
     align_model = WhisperxAlignModel(args.language)
     transcribe_model = WhisperxModel(args.whisper_model_name, align_model, args.language)
-    orig_transcript, segments = transcribe(audio_fn, transcribe_model) if args.orig_transcript is None else args.orig_transcript
+    orig_transcript, segments = transcribe(audio_fn, transcribe_model)
+    # if args.orig_transcript is None else args.orig_transcript
     if args.language == 'zh':
         converter = opencc.OpenCC('t2s')
         orig_transcript = converter.convert(orig_transcript)
@@ -348,7 +349,6 @@ def main(args):
                 offset = transcribe_state['segments'][0]['words'][0]['start']
             else:
                 offset = transcribe_state['segments'][0]['words'][1]['start']
-            print(tmp1,tmp2)
             audio, _ = librosa.load(save_fn_new, sr=16000, offset=offset)
             sf.write(save_fn_new, audio, 16000)
 
