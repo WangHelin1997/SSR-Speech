@@ -229,7 +229,7 @@ python inference_v2.py  \
     --codec_path "./pretrained_models/wmencodec.th" \
     --orig_audio "./demo/aishell3_test.wav" \
     --prompt_length 3 \
-    --target_transcript "我简直不敢相信同一个模型也可以进行文本到语音的合成" \
+    --target_transcript "我简直不敢相信同一个模型也可以进行文本到语音的生成" \
     --temp_folder "./demo/temp" \
     --output_dir "./demo/generated_tts" \
     --savename "aishell3_test" \
