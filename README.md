@@ -123,7 +123,7 @@ python inference_v2.py  \
     --temp_folder "./demo/temp" \
     --output_dir "./demo/generated_se" \
     --savename "84_121550_000074_00000" \
-    --whisper_model_name "base_en"
+    --whisper_model_name "base.en"
 ```
 
 <!-- ```bash
@@ -194,7 +194,7 @@ python inference_v2.py  \
     --temp_folder "./demo/temp" \
     --output_dir "./demo/generated_tts" \
     --savename "5895_34622_000026_000002" \
-    --whisper_model_name "base_en"
+    --whisper_model_name "base.en"
 ```
 
 For Mandarin speech editing test, please run:
