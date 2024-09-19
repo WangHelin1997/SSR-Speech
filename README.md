@@ -15,6 +15,7 @@ Official Pytorch implementation of the paper: SSR-Speech: Towards Stable, Safe a
 - [x] Release English model weights
 - [x] Release Mandarin model weights
 - [ ] HuggingFace Spaces demo
+- [ ] Fix gradio app
 - [x] arxiv paper
 - [x] WhisperX forced alignment
 - [x] ASR for automatically transcipt the prompt for TTS
