@@ -69,23 +69,19 @@ def inference_one_sample(model, model_args, phn2num, text_tokenizer, audio_token
         padding_length = (multiple - (current_length % multiple)) % multiple
         if padding_length > 0:
             wav = F.pad(wav, (0, padding_length), "constant", 0)
-        # new_emb = torch.zeros((1, emb.shape[1], encoded_frames.shape[-1])).to(encoded_frames.device)
         new_wav = torch.zeros(1, encoded_frames.shape[-1]*320) # codec hz
         
         ori_non_mask_intervals = [(max(item[0],0), item[1]) for item in ori_masks]
         non_mask_intervals = [(max(item[0],0), item[1]) for item in masks]
         for i in range(len(ori_non_mask_intervals)):
-            # new_emb[..., non_mask_intervals[i][0]:non_mask_intervals[i][1]] = emb[..., ori_non_mask_intervals[i][0]:ori_non_mask_intervals[i][1]]
             new_wav[:, non_mask_intervals[i][0]*320:non_mask_intervals[i][1]*320] = wav[:, ori_non_mask_intervals[i][0]*320:ori_non_mask_intervals[i][1]*320]
 
-        # generated_sample = audio_tokenizer.wmdecode(encoded_frames, marks.to(encoded_frames.device), new_emb, scale)
         generated_sample = audio_tokenizer.wmdecode(encoded_frames, marks.to(encoded_frames.device), new_wav.unsqueeze(0).to(encoded_frames.device), scale)
 
     else:
         generated_sample = audio_tokenizer.decode(encoded_frames, scale)
         
     if tts:
-        wav, sr = torchaudio.load(audio_fn)
         generated_sample = generated_sample[:,:, masks[0][1]*320:]
             
     return generated_sample
