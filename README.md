@@ -225,7 +225,7 @@ python inference_v2.py  \
     --aug_text \
     --use_watermark \
     --language 'zh' \
-    --model_path "./pretrained_models/English.pth" \
+    --model_path "./pretrained_models/Mandarin.pth" \
     --codec_path "./pretrained_models/wmencodec.th" \
     --orig_audio "./demo/aishell3_test.wav" \
     --prompt_length 3 \
