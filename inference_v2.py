@@ -251,7 +251,7 @@ def main(args):
 
         audio, _ = librosa.load(audio_fn, sr=16000, duration=cut_length)
         sf.write(audio_fn, audio, 16000)
-        orig_transcript, segments = transcribe(audio_fn, transcribe_model) if args.orig_transcript is None else args.orig_transcript
+        orig_transcript, segments = transcribe(audio_fn, transcribe_model)
         
         if args.language == 'zh':
             converter = opencc.OpenCC('t2s')
