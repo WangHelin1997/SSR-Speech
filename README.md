@@ -43,7 +43,7 @@ pip install gradio==3.50.2
 pip install nltk>=3.8.1
 pip install openai-whisper>=20231117
 pip install whisperx==3.1.5
-pip install faster-whisper==1.0.0
+pip install faster-whisper==1.0.1
 pip install num2words==0.5.13
 pip install opencc-python-reimplemented
 ```
