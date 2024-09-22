@@ -5,7 +5,7 @@
 
 <!-- [![Paper](https://img.shields.io/badge/arXiv-2409.07556-brightgreen.svg?style=flat-square)](https://arxiv.org/pdf/2409.07556)  [![HuggingFace](https://img.shields.io/badge/%F0%9F%A4%97%20Hugging%20Face-Spaces-blue)](https://huggingface.co/spaces/) [![Models](https://img.shields.io/badge/%F0%9F%A4%97%20Hugging%20Face-Models-blue)](https://huggingface.co/westbrook/SSR-Speech-English)  [![Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1g4-Oqd1Fu9WfDFb-nicfxqsWIPvsGb91?usp=sharing)  [![Demo page](https://img.shields.io/badge/Audio_Samples-blue?logo=Github&style=flat-square)](https://wanghelin1997.github.io/SSR-Speech-Demo/) -->
 
-[![Paper](https://img.shields.io/badge/arXiv-2409.07556-brightgreen.svg?style=flat-square)](https://arxiv.org/pdf/2409.07556)  [![Mandarin Models](https://img.shields.io/badge/%F0%9F%A4%97%20Hugging%20Face-Models-blue)](https://huggingface.co/westbrook/SSR-Speech-Mandarin) [![English Models](https://img.shields.io/badge/%F0%9F%A4%97%20Hugging%20Face-Models-blue)](https://huggingface.co/westbrook/SSR-Speech-English)  [![Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1g4-Oqd1Fu9WfDFb-nicfxqsWIPvsGb91?usp=sharing)  [![Demo page](https://img.shields.io/badge/Audio_Samples-blue?logo=Github&style=flat-square)](https://wanghelin1997.github.io/SSR-Speech-Demo/)
+[![Paper](https://img.shields.io/badge/arXiv-2409.07556-brightgreen.svg?style=flat-square)](https://arxiv.org/pdf/2409.07556)  [![Mandarin Models](https://img.shields.io/badge/%F0%9F%A4%97%20Hugging%20Face-Models-blue)](https://huggingface.co/westbrook/SSR-Speech-Mandarin) [![English Models](https://img.shields.io/badge/%F0%9F%A4%97%20Hugging%20Face-Models-blue)](https://huggingface.co/westbrook/SSR-Speech-English)   [![Demo page](https://img.shields.io/badge/Audio_Samples-blue?logo=Github&style=flat-square)](https://wanghelin1997.github.io/SSR-Speech-Demo/)
 
 Official Pytorch implementation of the paper: SSR-Speech: Towards Stable, Safe and Robust Zero-shot Speech Editing and Synthesis.
 
@@ -86,7 +86,7 @@ SSR-Speech/
     ....
 ```
 
-## Gradio
+<!-- ## Gradio
 ### Run in colab
 
 [![Open in Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1g4-Oqd1Fu9WfDFb-nicfxqsWIPvsGb91?usp=sharing)
@@ -103,7 +103,7 @@ It is ready to use on [default url](http://127.0.0.1:7860).
 2. Load models
 3. Transcribe
 4. Align
-5. Run
+5. Run -->
 
 ## Inference examples
 
