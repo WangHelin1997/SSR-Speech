@@ -6,7 +6,7 @@ from tqdm import tqdm
 import argparse
 
 def parse_args():
-    parser = argparse.ArgumentParser(description="encode the librilight dataset using encodec model")
+    parser = argparse.ArgumentParser(description="generate the vocabulary set")
     parser.add_argument('--save_dir', type=str, default=None, help="path to the manifest, phonemes, and encodec codes dirs")
     parser.add_argument("--dataset_name", type=str, default='English', help='name tag of dataset')
     return parser.parse_args()
