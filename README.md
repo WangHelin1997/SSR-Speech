@@ -243,11 +243,16 @@ To train an SSR-Speech model, you need to prepare the following parts:
 1. Prepare a json file saving data in the following format (including utterances and their transcripts):
 ```
 {
-"segment_id": "YOU1000000012_S0000106",
-"wav": "/data/gigaspeech/wavs/xl/YOU1000000012/YOU1000000012_S0000106.wav",
-"trans": "then you can look at o b s or wirecast as a professional solution then. if you're on a mac and you're looking for a really cheap and easy way to create a professional live stream.",
-"duration": 9.446044921875
+"segment_id": "audio1",
+"wav": "/data/audio1.wav",
+"trans": "I like SSR-Speech.",
 }
+{
+"segment_id": "audio2",
+"wav": "/data/audio2.wav",
+"trans": "SSR-Speech can do both zero-shot speech editing and text-to-speech!",
+}
+...
 ```
 
 2. Encode the utterances into codes using e.g. Encodec. Run:
@@ -255,30 +260,29 @@ To train an SSR-Speech model, you need to prepare the following parts:
 ```bash
 export CUDA_VISIBLE_DEVICES=0
 cd ./data
-AUDIO_PATH=''
-SAVE_DIR=''
-ENCODEC_PATH=''
-DATA_NAME=''
+JSON_PATH='/data/test_gigaspeech.json' # change to your path
+SAVE_DIR='/data/gigaspeech' # change to your path
+ENCODEC_PATH='./pretrained_models/wmencodec.th' # change to your wmencodec path
+DATA_NAME='gigaspeech' # change to yours
 python encode.py \
 --dataset_name ${DATA_NAME} \
---audiopath ${AUDIO_PATH} \
 --save_dir ${SAVE_DIR} \
 --encodec_model_path ${ENCODEC_PATH} \
---batch_size 32 \
+--json_path ${JSON_PATH} \
 --start 0 \
 --end 10000000
 ```
-Here, `AUDIO_PATH` is the path where the json file was saved, `SAVE_DIR` is the path where the processed data will be saved, `ENCODEC_PATH` is the path of a pretrained encodec model and `DATA_NAME` is the saved name of the dataset. Here the `start` and `end` indexes are used for multi-gpu processing.
+Here, `JSON_PATH` is the path where the json file was saved, `SAVE_DIR` is the path where the processed data will be saved, `ENCODEC_PATH` is the path of a pretrained encodec model and `DATA_NAME` is the saved name of the dataset. Here the `start` and `end` indexes are used for multi-gpu processing.
 
 3. Convert transcripts into phoneme sequence. Run:
 
 ```bash
-AUDIO_PATH=''
-SAVE_DIR=''
-DATA_NAME=''
+JSON_PATH='/data/test_gigaspeech.json' # change to your path
+SAVE_DIR='/data/gigaspeech' # change to your path
+DATA_NAME='gigaspeech' # change to yours
 python phonemize.py \
 --dataset_name ${DATA_NAME} \
---dataset_dir ${AUDIO_PATH} \
+--json_path ${JSON_PATH} \
 --save_dir ${SAVE_DIR}
 ```
 Add `language='cmn'` in Line 47 (`phonemize.py`) when you process Mandarin.
@@ -286,20 +290,22 @@ Add `language='cmn'` in Line 47 (`phonemize.py`) when you process Mandarin.
 4. Prepare manifest (i.e. metadata). Run:
 
 ```bash
-AUDIO_PATH=''
-SAVE_DIR=''
-DATA_NAME=''
+JSON_PATH='/data/test_gigaspeech.json' # change to your path
+SAVE_DIR='/data/gigaspeech' # change to your path
+DATA_NAME='gigaspeech' # change to yours
+SAVENAME='test' # change to yours
 python filemaker.py \
 --dataset_name ${DATA_NAME} \
---dataset_dir ${AUDIO_PATH} \
---save_dir ${SAVE_DIR}
+--json_path ${JSON_PATH} \
+--save_dir ${SAVE_DIR} \
+--savename ${SAVENAME}
 ```
 
 5. Prepare a phoneme set (we named it vocab.txt)
 
 ```bash
-SAVE_DIR=''
-DATA_NAME=''
+SAVE_DIR='/data/gigaspeech' # change to your path
+DATA_NAME='gigaspeech' # change to yours
 python vocab.py \
 --dataset_name ${DATA_NAME} \
 --save_dir ${SAVE_DIR}
