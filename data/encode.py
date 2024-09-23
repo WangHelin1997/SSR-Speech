@@ -3,7 +3,7 @@
 import json
 import argparse
 def parse_args():
-    parser = argparse.ArgumentParser(description="encode the librilight dataset using encodec model")
+    parser = argparse.ArgumentParser(description="encode the dataset using encodec model")
     parser.add_argument("--json_path", type=str, default=None)
     parser.add_argument('--save_dir', type=str, default=None)
     parser.add_argument('--save_tag', type=str, default='wmencodec')
