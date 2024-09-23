@@ -20,6 +20,7 @@ Official Pytorch implementation of the paper: SSR-Speech: Towards Stable, Safe a
 - [x] WhisperX forced alignment
 - [x] ASR for automatically transcipt the prompt for TTS
 - [x] Simplify the inference stage
+- [ ] Manage data preparation
 
 
 ## Environment setup
