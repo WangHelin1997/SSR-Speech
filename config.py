@@ -56,7 +56,7 @@ def MyParser():
     parser.add_argument('--mask_len_max', type=int, default=600, help='Maximum mask length')
     parser.add_argument("--eos", type=int, default=2051, help="this is to be used with reduced_eog, where we end the utterance with eos, and end the generated segment with eog, also when this is used, the n_special should be 4")
     parser.add_argument("--tts_enhanced", type=int, default=1, help="whether to enhance the tts training")
-    parser.add_argument("--cfg_enhanced", type=int, default=1, help="whether to enhance the cfg sampling")
+    parser.add_argument("--cfg_enhanced", type=int, default=0, help="whether to enhance the cfg sampling")
     parser.add_argument("--predict_mask_token", type=int, default=0, help="whether to enhance the tts training")
     parser.add_argument("--predict_all", type=int, default=0, help="whether to enhance the tts training")
     parser.add_argument("--reduced_eog", type=int, default=0, help="for the non-final segments, do not insert eog at the end, this could hopefully solve the early stopping issue when doing tts")
