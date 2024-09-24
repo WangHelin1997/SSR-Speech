@@ -729,7 +729,7 @@ class SSR_Speech(
                     assert samples.shape == torch.Size((self.args.n_codebooks, 1)), f"samples.shape: {samples.shape}"
                     
                     if (
-                        samples[0,0] == self.args.eog or torch.argmax(logits[0], dim=-1) == self.args.eog or y_input.shape[1] > x_lens[0] * 20
+                        samples[0,0] == self.args.eog or torch.argmax(logits[0], dim=-1) == self.args.eog or y_input.shape[1] > x_lens[0] * 30
                     ): # last one means y is already too long, shouldn't happen, but put it here
                         samples[0,0] = self.args.eog
                         num_eog += 1
