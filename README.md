@@ -47,6 +47,7 @@ pip install whisperx==3.1.5
 pip install faster-whisper==1.0.1
 pip install num2words==0.5.13
 pip install opencc-python-reimplemented
+pip install ctranslate2==4.4.0
 ```
 
 <!-- ```bash
