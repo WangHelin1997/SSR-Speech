@@ -517,6 +517,7 @@ class SSR_Speech(
         kvcache: int=1,
         silence_tokens: list[int]=[1388,1898,131],
         cfg_coef: float=1.5,
+        cfg_stride: int=1,
         aug_text: bool=False,
         aug_context: bool=False,
         cfg_pretrained: bool=False,
@@ -648,6 +649,7 @@ class SSR_Speech(
             consec_silence_count = 0
             num_gen = 0
             num_eog = 0
+            num_cfg_tag = 1
 
             # add mask token
             mts = torch.LongTensor([emb_inds[idx]] * self.args.n_codebooks).unsqueeze(-1).to(embedded_y.device) # K, 1
@@ -686,7 +688,12 @@ class SSR_Speech(
                 logits = torch.stack([self.predict_layer[i](y_out) for i in range(self.args.n_codebooks)], dim=1) # [B K S card], B==S==1, so [1 K 1 card]
                 logits = logits.squeeze() # [K card]
                 if aug_text:
-                    logits = cfg_coef * logits[0] + (1 - cfg_coef) * logits[1]
+                    if num_cfg_tag == cfg_stride:
+                        logits = cfg_coef * logits[0] + (1 - cfg_coef) * logits[1]
+                        num_cfg_tag = 1
+                    else:
+                        num_cfg_tag += 1
+                        logits = logits[0]
                 assert logits.shape == torch.Size((self.args.n_codebooks, self.n_audio_tokens[0])), f"{logits.shape}"
                 # filter out mts, sos and eos
                 for jj in range(self.args.n_codebooks):
