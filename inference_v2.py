@@ -168,6 +168,7 @@ def parse_args():
     parser.add_argument('--stop_repetition', type=int, default=2, help="-1 means do not adjust prob of silence tokens. if there are long silence or unnaturally strecthed words, increase sample_batch_size to 2, 3 or even 4.")
     parser.add_argument('--sample_batch_size', type=int, default=1, help="what this will do to the model is that the model will run sample_batch_size examples of the same audio")
     parser.add_argument('--cfg_coef', type=float, default=1.5)
+    parser.add_argument('--cfg_stride', type=int, default=1)
     parser.add_argument('--aug_text', action='store_true')
     parser.add_argument('--aug_context', action='store_true')
     parser.add_argument('--use_watermark', action='store_true')
@@ -329,7 +330,7 @@ def main(args):
     
     for num in tqdm(range(args.sample_batch_size)):
         seed_everything(args.seed+num)
-        new_audio = inference_one_sample(model, Namespace(**config), phn2num, text_tokenizer, audio_tokenizer, audio_fn, orig_transcript, target_transcript, mask_interval, args.cfg_coef, args.aug_text, args.aug_context, args.use_watermark, args.tts, device, decode_config)
+        new_audio = inference_one_sample(model, Namespace(**config), phn2num, text_tokenizer, audio_tokenizer, audio_fn, orig_transcript, target_transcript, mask_interval, args.cfg_coef, args.cfg_stride, args.aug_text, args.aug_context, args.use_watermark, args.tts, device, decode_config)
         # save segments for comparison
         new_audio = new_audio[0].cpu()
         save_fn_new = f"{args.output_dir}/{args.savename}_new_seed{args.seed+num}.wav"
