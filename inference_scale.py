@@ -15,7 +15,7 @@ import time
 
 
 @torch.no_grad()
-def inference_one_sample(model, model_args, phn2num, text_tokenizer, audio_tokenizer, audio_fn, prompt_text, target_text, mask_interval, cfg_coef, aug_text, aug_context, use_watermark, tts, device, decode_config):
+def inference_one_sample(model, model_args, phn2num, text_tokenizer, audio_tokenizer, audio_fn, prompt_text, target_text, mask_interval, cfg_coef, cfg_stride, aug_text, aug_context, use_watermark, tts, device, decode_config):
     # phonemize
     text_tokens = [phn2num[phn] for phn in
             tokenize_text(
@@ -54,6 +54,7 @@ def inference_one_sample(model, model_args, phn2num, text_tokenizer, audio_token
         stop_repetition=decode_config['stop_repetition'],
         kvcache=decode_config['kvcache'],
         cfg_coef=cfg_coef,
+        cfg_stride=cfg_stride,
         aug_text=aug_text,
     ) # output is [1,K,T]
     logging.info(f"inference on one sample take: {time.time() - stime:.4f} sec.")
