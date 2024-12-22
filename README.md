@@ -115,6 +115,7 @@ For English speech editing test, please run:
 ```bash
 python inference_v2.py  \
     --seed 2024 \
+    --cfg_stride 5 \
     --sub_amount 0.12 \
     --aug_text \
     --use_watermark \
@@ -135,6 +136,7 @@ python inference.py  \
     --mfa_dict_path "./pretrained_models/english_us_arpa.dict" \
     --mfa_path "./pretrained_models/english_us_arpa.zip" \
     --seed 2024 \
+    --cfg_stride 5 \
     --sub_amount 0.12 \
     --top_p 0.8 \
     --stop_repetition 2 \
@@ -161,6 +163,7 @@ python inference.py  \
     --mfa_dict_path "./pretrained_models/mandarin_china_mfa.dict" \
     --mfa_path "./pretrained_models/mandarin_mfa.zip" \
     --seed 2024 \
+    --cfg_stride 5 \
     --sub_amount 0.01 \
     --top_p 0.8 \
     --stop_repetition 2 \
@@ -187,6 +190,7 @@ python inference_v2.py  \
     --seed 2024 \
     --tts \
     --aug_text \
+    --cfg_stride 5 \
     --use_watermark \
     --language 'en' \
     --model_path "./pretrained_models/English.pth" \
@@ -206,6 +210,7 @@ For Mandarin speech editing test, please run:
 python inference_v2.py  \
     --seed 2024 \
     --sub_amount 0.12 \
+    --cfg_stride 5 \
     --aug_text \
     --use_watermark \
     --language 'zh' \
@@ -226,6 +231,7 @@ python inference_v2.py  \
     --seed 2024 \
     --tts \
     --aug_text \
+    --cfg_stride 5 \
     --use_watermark \
     --language 'zh' \
     --model_path "./pretrained_models/Mandarin.pth" \
