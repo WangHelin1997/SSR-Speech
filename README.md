@@ -21,6 +21,7 @@ Official Pytorch implementation of the paper: SSR-Speech: Towards Stable, Safe a
 - [x] ASR for automatically transcipt the prompt for TTS
 - [x] Simplify the inference stage
 - [x] Manage data preparation
+- [ ] Fast speed caused by CFG
 
 
 ## Environment setup
