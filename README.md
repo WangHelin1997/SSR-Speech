@@ -54,29 +54,6 @@ pip install ctranslate2==4.4.0
 ### ⚠️ Note
 Be sure to install the correct version of `phonemizer`.
 
-<!-- ```bash
-conda create -n ssr python=3.9.16
-conda activate ssr
-
-pip install git+https://github.com/WangHelin1997/SSR-Speech.git#subdirectory=audiocraft
-
-pip install xformers==0.0.22
-pip install torchaudio torch
-apt-get install ffmpeg
-apt-get install espeak-ng
-pip install tensorboard==2.16.2
-pip install phonemizer==3.2.1
-pip install datasets==2.16.0
-pip install torchmetrics==0.11.1
-pip install huggingface_hub==0.22.2
-
-# only use for inference
-conda install -c conda-forge montreal-forced-aligner=2.2.17 openfst=1.8.2 kaldi=5.5.1068
-mfa model download dictionary english_us_arpa
-mfa model download acoustic english_us_arpa
-mfa model download dictionary mandarin_china_mfa
-mfa model download acoustic mandarin_mfa
-``` -->
 
 ## Pretrained Models
 
@@ -133,59 +110,6 @@ python inference_v2.py  \
     --whisper_model_name "base.en"
 ```
 
-<!-- ```bash
-python inference.py  \
-    --use_downloaded_mfa \
-    --mfa_dict_path "./pretrained_models/english_us_arpa.dict" \
-    --mfa_path "./pretrained_models/english_us_arpa.zip" \
-    --seed 2024 \
-    --cfg_stride 5 \
-    --sub_amount 0.12 \
-    --top_p 0.8 \
-    --stop_repetition 2 \
-    --sample_batch_size 1 \
-    --cfg_coef 1.5 \
-    --aug_text \
-    --use_watermark \
-    --language 'en' \
-    --model_path "./pretrained_models/English_10k/e830M/best_bundle.pth" \
-    --codec_path "./pretrained_models/WMEncodec/checkpoint.th" \
-    --orig_audio "./demo/84_121550_000074_000000.wav" \
-    --orig_transcript "But when I had approached so near to them The common object, which the sense deceives, Lost not by distance any of its marks," \
-    --target_transcript "But when I saw the mirage of the lake in the distance, which the sense deceives, Lost not by distance any marks," \
-    --temp_folder "./demo/temp"\
-    --output_dir "./demo/generated_se"\
-    --savename "84_121550_000074_00000"
-``` -->
-
-<!-- For Mandarin zero-shot TTS test, please run:
-
-```bash
-python inference.py  \
-    --use_downloaded_mfa \
-    --mfa_dict_path "./pretrained_models/mandarin_china_mfa.dict" \
-    --mfa_path "./pretrained_models/mandarin_mfa.zip" \
-    --seed 2024 \
-    --cfg_stride 5 \
-    --sub_amount 0.01 \
-    --top_p 0.8 \
-    --stop_repetition 2 \
-    --sample_batch_size 1 \
-    --cfg_coef 1.5 \
-    --aug_text \
-    --use_watermark \
-    --tts \
-    --language 'zh' \
-    --model_path "./pretrained_models/Chinese_25k/e830M/best_bundle.pth" \
-    --codec_path "./pretrained_models/WMEncodec/checkpoint.th" \
-    --orig_audio "./demo/pony.wav" \
-    --orig_transcript "能够更有效率地结合给用户提升更多的这种体验也包括他的这个他的后台的效率提升等等我相信这些额额业界的解决方案应该说是" \
-    --target_transcript "能够更有效率地结合给用户提升更多的这种体验在游戏业务的强势反弹下，腾讯在二季度拿出了一份十分亮眼的成绩单" \
-    --temp_folder "./demo/temp"\
-    --output_dir "./demo/generated_tts"\
-    --savename "pony"
-``` -->
-
 For English zero-shot TTS test, please run:
 
 ```bash
@@ -213,7 +137,7 @@ For Mandarin speech editing test, please run:
 python inference_v2.py  \
     --seed 2024 \
     --sub_amount 0.12 \
-    --cfg_stride 5 \
+    --cfg_stride 1 \
     --aug_text \
     --use_watermark \
     --language 'zh' \
@@ -234,7 +158,7 @@ python inference_v2.py  \
     --seed 2024 \
     --tts \
     --aug_text \
-    --cfg_stride 5 \
+    --cfg_stride 1 \
     --use_watermark \
     --language 'zh' \
     --model_path "./pretrained_models/Mandarin.pth" \
