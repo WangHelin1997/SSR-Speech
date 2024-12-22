@@ -53,6 +53,8 @@ pip install ctranslate2==4.4.0
 
 🚀 **Note**: Be sure to install the correct version of `espeak-ng` and  `phonemizer`.
 
+### ⚠️ Note
+Be sure to install the correct version of `espeak-ng` and  `phonemizer`.
 
 <!-- ```bash
 conda create -n ssr python=3.9.16
