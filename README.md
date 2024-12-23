@@ -53,7 +53,7 @@ pip install ctranslate2==4.4.0
 ```
 
 ### ⚠️ Note
-Make sure to install the correct version of `espeak-ng` and `phonemizer`. We used `espeak-ng=1.51`.
+Make sure to install the correct version of `espeak-ng` and `phonemizer`. We used `espeak-ng=1.52`.
 
 
 ## Pretrained Models
