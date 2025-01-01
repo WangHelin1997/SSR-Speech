@@ -55,6 +55,7 @@ pip install ctranslate2==4.4.0
 ### ⚠️ Note
 Make sure to install the correct version of `espeak-ng` and `phonemizer`. We used `espeak-ng=1.52` under `Ubuntu 22.04`. Otherwise, the Mandarin model may not work.
 
+If you use 'espeak-ng=1.51', please change the phonemizer from `cmn` to `cmn-latn-pinyin`.
 
 ## Pretrained Models
 
