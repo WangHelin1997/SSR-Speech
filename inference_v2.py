@@ -203,7 +203,7 @@ def main(args):
     model.to(device)
     model.eval()
     audio_tokenizer = AudioTokenizer(signature=args.codec_path)
-    text_tokenizer = TextTokenizer(backend="espeak") if args.language == 'en' else TextTokenizer(backend="espeak", language='cmn')
+    text_tokenizer = TextTokenizer(backend="espeak") if args.language == 'en' else TextTokenizer(backend="espeak", language='cmn') # use 'cmn-latn-pinyin' if your espeak-ng version is 1.51
         
     start_time = time.time()
     # move the audio and transcript to temp folder
